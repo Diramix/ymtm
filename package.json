@@ -1,6 +1,6 @@
 {
     "name": "ymtm",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "description": "Yandex Music Theme Maker",
     "bin": {
         "ymtm": "./bin/ymtm.js"
