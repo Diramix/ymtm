@@ -4,16 +4,13 @@ const log = require("../logger");
 const {
     ensureDir,
     findFiles,
-    minifyAndWrite,
-    createZip,
     resolveArtifactName,
-    themeFolderName,
     fileSize,
     minifyJS,
     minifyCSS,
 } = require("../utils");
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 function fileToDataUrl(filePath) {
     const ext = path.extname(filePath).toLowerCase();
     const mimeMap = {
@@ -123,7 +120,7 @@ function applyReplacements(content, replacements) {
     return result;
 }
 
-// ── CSS-in-JS injector ────────────────────────────────────────────────────────
+// CSS-in-JS injector
 function cssToJS(cssContent) {
     const escaped = cssContent
         .replace(/\\/g, "\\\\")
@@ -132,7 +129,7 @@ function cssToJS(cssContent) {
     return `(function(){var s=document.createElement('style');s.textContent=\`${escaped}\`;document.head.appendChild(s)})();`;
 }
 
-// ── TamperMonkey header ───────────────────────────────────────────────────────
+// TamperMonkey header
 function buildTMHeader(metadata, config) {
     const icon = config?.web?.icon || "";
     const name = metadata?.name || config.themeName || "Theme";
@@ -157,52 +154,7 @@ function buildTMHeader(metadata, config) {
     ].join("\n");
 }
 
-// ── Normal web build ──────────────────────────────────────────────────────────
-function buildWebNormal(config) {
-    const cwd = config._cwd;
-    const name = config.themeName;
-    const version = config.version;
-    const themeDir = config._themeDir;
-    const replacements = buildWebReplacementMap(config);
-
-    const unpackedFolder = themeFolderName(name, version) + "_web-unpacked";
-    const outDir = path.join(cwd, "dist", unpackedFolder, name);
-    ensureDir(outDir);
-
-    for (const srcFile of findFiles(themeDir, [".js", ".css"])) {
-        const rel = path.relative(themeDir, srcFile);
-        const outFile = path.join(outDir, rel);
-
-        let content;
-        if (srcFile.endsWith(".css")) {
-            content = minifyCSS(srcFile);
-        } else {
-            content = minifyJS(srcFile);
-        }
-
-        content = applyReplacements(content, replacements);
-
-        ensureDir(path.dirname(outFile));
-        fs.writeFileSync(outFile, content, "utf8");
-        log.file("minify", rel);
-    }
-
-    const zipConfig = config.web?.zip;
-    if (zipConfig) {
-        const zipName = resolveArtifactName(
-            zipConfig.artifactName,
-            config,
-            "web",
-        );
-        const zipPath = path.join(cwd, "dist", zipName);
-        createZip(zipPath, [{ disk: outDir, archive: name }]);
-        log.artifact(zipName, fileSize(zipPath));
-        return zipName;
-    }
-    return null;
-}
-
-// ── Onefile / TamperMonkey build ─────────────────────────────────────────────
+// Onefile / TamperMonkey build
 function buildWebOnefile(config) {
     const cwd = config._cwd;
     const name = config.themeName;
@@ -250,7 +202,7 @@ function buildWebOnefile(config) {
     return artifactName;
 }
 
-// ── Entry ─────────────────────────────────────────────────────────────────────
+// Entry
 function buildWeb(config) {
     const name = config.themeName;
     const version = config.version;
@@ -258,23 +210,9 @@ function buildWeb(config) {
     log.task("web");
     log.info("building", { target: "web", themeName: name, version });
 
-    const artifacts = [];
+    const artifactName = buildWebOnefile(config);
 
-    if (config.web?.zip) {
-        const r = buildWebNormal(config);
-        if (r) artifacts.push(r);
-    }
-
-    if (config.web?.onefile) {
-        const r = buildWebOnefile(config);
-        if (r) artifacts.push(r);
-    }
-
-    if (!config.web?.zip && !config.web?.onefile) {
-        buildWebNormal(config);
-    }
-
-    log.done("web", artifacts.join(", ") || undefined);
+    log.done("web", artifactName || undefined);
 }
 
 module.exports = { buildWeb };
