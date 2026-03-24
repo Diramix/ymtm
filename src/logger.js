@@ -48,7 +48,7 @@ function task(name) {
 }
 
 function done(name, files) {
-    const fileStr = files ? `  ${GRAY}(${files})${RESET}` : "";
+    const fileStr = files ? ` ${GRAY}(${files})${RESET}` : "";
     process.stdout.write(
         `${GRAY}  └─${RESET} ${GREEN}${BOLD}done${RESET}${fileStr}${os.EOL}`,
     );
@@ -57,21 +57,21 @@ function done(name, files) {
 function artifact(file, size) {
     const sizeStr = size ? ` ${GRAY}${size}${RESET}` : "";
     process.stdout.write(
-        `${GRAY}  │${RESET}  ${GREEN}✔${RESET}  ${BOLD}${file}${RESET}${sizeStr}${os.EOL}`,
+        `${GRAY}  │${RESET}  ${GREEN}✔${RESET} ${BOLD}${file}${RESET}${sizeStr}${os.EOL}`,
     );
 }
 
 function warn(msg) {
-    process.stdout.write(`${YELLOW}  ⚠  ${msg}${RESET}${os.EOL}`);
+    process.stdout.write(`${YELLOW}  ⨯  ${msg}${RESET}${os.EOL}`);
 }
 
 function error(msg) {
-    process.stderr.write(`${RED}  ✖  ${msg}${RESET}${os.EOL}`);
+    process.stderr.write(`${RED}  ⨯  ${msg}${RESET}${os.EOL}`);
 }
 
 function file(action, name) {
-    const icons = { minify: "⚡", copy: "⊕", write: "⊕", skip: "○" };
-    const icon = icons[action] || "·";
+    const icons = { minify: "~", copy: "•", write: "•", skip: "»" };
+    const icon = icons[action] || "⤷";
     process.stdout.write(
         `${GRAY}  │${RESET}     ${GRAY}${icon}${RESET} ${name}${os.EOL}`,
     );
