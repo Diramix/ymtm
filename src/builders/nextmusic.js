@@ -69,6 +69,16 @@ function buildNextMusic(config) {
         log.file("copy", "README.md");
     }
 
+    // 4.1. handleEvents.json
+    const handleEventsSrc = path.join(themeDir, "handleEvents.json");
+    if (fs.existsSync(handleEventsSrc)) {
+        fs.copyFileSync(
+            handleEventsSrc,
+            path.join(outDir, "handleEvents.json"),
+        );
+        log.file("copy", "handleEvents.json");
+    }
+
     // 5. ZIP
     const unpackedDir = path.join(cwd, "dist", unpackedFolder);
     const zipConfig = config.nextmusic?.zip;

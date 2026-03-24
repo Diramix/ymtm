@@ -68,6 +68,16 @@ function buildPulseSync(config) {
         log.file("copy", "README.md");
     }
 
+    // 4.1. handleEvents.json
+    const handleEventsSrc = path.join(themeDir, "handleEvents.json");
+    if (fs.existsSync(handleEventsSrc)) {
+        fs.copyFileSync(
+            handleEventsSrc,
+            path.join(outDir, "handleEvents.json"),
+        );
+        log.file("copy", "handleEvents.json");
+    }
+
     // 5. Картинки — берём файл из metadata.image если указан, иначе все картинки
     const imageField = metadata?.image;
     if (imageField) {
