@@ -78,24 +78,13 @@ function buildPulseSync(config) {
         log.file("copy", "handleEvents.json");
     }
 
-    // 5. Картинки — берём файл из metadata.image если указан, иначе все картинки
-    const imageField = metadata?.image;
-    if (imageField) {
-        const imgSrc = path.join(themeDir, imageField);
-        if (fs.existsSync(imgSrc)) {
-            fs.copyFileSync(imgSrc, path.join(outDir, imageField));
-            log.file("copy", imageField);
-        } else {
-            log.warn(`image "${imageField}" from metadata not found`);
-        }
-    } else {
-        for (const entry of fs.readdirSync(themeDir)) {
-            const srcFile = path.join(themeDir, entry);
-            if (fs.statSync(srcFile).isDirectory()) continue;
-            if (IMAGE_EXTS.includes(path.extname(entry).toLowerCase())) {
-                fs.copyFileSync(srcFile, path.join(outDir, entry));
-                log.file("copy", entry);
-            }
+    // 5. Картинки
+    for (const entry of fs.readdirSync(themeDir)) {
+        const srcFile = path.join(themeDir, entry);
+        if (fs.statSync(srcFile).isDirectory()) continue;
+        if (IMAGE_EXTS.includes(path.extname(entry).toLowerCase())) {
+            fs.copyFileSync(srcFile, path.join(outDir, entry));
+            log.file("copy", entry);
         }
     }
 
