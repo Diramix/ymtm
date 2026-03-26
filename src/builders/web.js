@@ -165,11 +165,13 @@ function buildWebOnefile(config) {
     const onefileCfg = config.web?.onefile;
 
     // 1. Собираем все CSS → CSS-in-JS
+    // Replacements применяются до минификации, чтобы esbuild видел финальный код
     const cssFiles = findFiles(themeDir, [".css"]);
     let cssBlock = "";
     for (const f of cssFiles) {
-        let content = minifyCSS(f);
+        let content = fs.readFileSync(f, "utf8");
         content = applyReplacements(content, replacements);
+        content = minifyCSS(f, content);
         cssBlock += cssToJS(content) + "\n";
         log.file("minify", `${path.relative(themeDir, f)} → css-in-js`);
     }
@@ -178,8 +180,9 @@ function buildWebOnefile(config) {
     const jsFiles = findFiles(themeDir, [".js"]);
     let jsBlock = "";
     for (const f of jsFiles) {
-        let content = minifyJS(f);
+        let content = fs.readFileSync(f, "utf8");
         content = applyReplacements(content, replacements);
+        content = minifyJS(f, content);
         jsBlock += content + "\n";
         log.file("minify", path.relative(themeDir, f));
     }

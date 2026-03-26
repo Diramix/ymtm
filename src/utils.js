@@ -2,6 +2,22 @@ const fs = require("fs");
 const path = require("path");
 const zlib = require("zlib");
 
+// ── esbuild (lazy-loaded so the tool stays optional if not installed) ─────────
+
+let _esbuild = null;
+function getEsbuild() {
+    if (!_esbuild) {
+        try {
+            _esbuild = require("esbuild");
+        } catch {
+            throw new Error(
+                "esbuild is not installed. Run: npm install --save-dev esbuild",
+            );
+        }
+    }
+    return _esbuild;
+}
+
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
 function ensureDir(dir) {
@@ -65,42 +81,71 @@ function findImageFile(dir, baseName) {
     return null;
 }
 
-// ── Minification ─────────────────────────────────────────────────────────────
+// ── Minification (via esbuild) ────────────────────────────────────────────────
 
-function minifyCSS(src) {
-    let content = fs.readFileSync(src, "utf8");
-    // Remove /* ... */ comments (including multi-line)
-    content = content.replace(/\/\*[\s\S]*?\*\//g, "");
-    // Remove // line comments (outside strings – best-effort)
-    content = content.replace(/(?<!https?:)(?<!["'])\/\/[^\n]*/g, "");
-    // Collapse whitespace / newlines to single space
-    content = content.replace(/\s+/g, " ").trim();
-    return content;
+/**
+ * Minify CSS content string using esbuild.
+ * @param {string} src - path to the source file (used for loader detection only)
+ * @param {string} [content] - optional pre-read content; if omitted, file is read from disk
+ * @returns {string} minified CSS
+ */
+function minifyCSS(src, content) {
+    const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
+    const result = getEsbuild().transformSync(code, {
+        loader: "css",
+        minify: true,
+    });
+    return result.code;
 }
 
-function minifyJS(src) {
-    let content = fs.readFileSync(src, "utf8");
-    // Remove block comments
-    content = content.replace(/\/\*[\s\S]*?\*\//g, "");
-    // Remove single-line comments (careful with URLs)
-    content = content.replace(/(?<!['":/])\/\/[^\n]*/g, "");
-    // Collapse whitespace / newlines to single space
-    content = content.replace(/\s+/g, " ").trim();
-    return content;
+/**
+ * Minify JS content string using esbuild.
+ * @param {string} src - path to the source file (used for loader detection only)
+ * @param {string} [content] - optional pre-read content; if omitted, file is read from disk
+ * @returns {string} minified JS
+ */
+function minifyJS(src, content) {
+    const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
+    const result = getEsbuild().transformSync(code, {
+        loader: "js",
+        format: "iife",
+        minify: true,
+    });
+    return result.code;
+}
+
+/**
+ * Minify HTML by collapsing whitespace and stripping comments.
+ * esbuild does not support HTML transforms, so we do a lightweight pass here.
+ * @param {string} src - path to the source file (for reading if content is omitted)
+ * @param {string} [content] - optional pre-read content
+ * @returns {string} minified HTML
+ */
+function minifyHTML(src, content) {
+    let code = content !== undefined ? content : fs.readFileSync(src, "utf8");
+    // Remove HTML comments (but not IE conditionals)
+    code = code.replace(/<!--(?!\[if)[\s\S]*?-->/g, "");
+    // Collapse whitespace between tags
+    code = code.replace(/>\s+</g, "><");
+    // Collapse runs of whitespace to single space
+    code = code.replace(/\s{2,}/g, " ").trim();
+    return code;
 }
 
 function minifyAndWrite(srcFile, destFile, replacements = []) {
     const ext = path.extname(srcFile).toLowerCase();
-    let content;
-    if (ext === ".css") {
-        content = minifyCSS(srcFile);
-    } else if (ext === ".js") {
-        content = minifyJS(srcFile);
-    } else {
-        content = fs.readFileSync(srcFile, "utf8");
-    }
+    let content = fs.readFileSync(srcFile, "utf8");
 
+    // Apply replacements BEFORE minifying so esbuild sees the final source
     content = applyReplacements(content, replacements);
+
+    if (ext === ".css") {
+        content = minifyCSS(srcFile, content);
+    } else if (ext === ".js") {
+        content = minifyJS(srcFile, content);
+    } else if (ext === ".html") {
+        content = minifyHTML(srcFile, content);
+    }
 
     ensureDir(path.dirname(destFile));
     fs.writeFileSync(destFile, content, "utf8");
@@ -351,24 +396,8 @@ function themeFolderName(name, version) {
     return name.replace(/\s+/g, "-") + "_" + version;
 }
 
-module.exports = {
-    fileSize,
-    ensureDir,
-    copyRecursive,
-    findFiles,
-    findImageFile,
-    minifyJS,
-    minifyCSS,
-    minifyAndWrite,
-    applyReplacements,
-    applyReplacementsToFile,
-    createZip,
-    resolveArtifactName,
-    themeFolderName,
-    IMAGE_EXTS,
-};
-
 // ── File size helper ──────────────────────────────────────────────────────────
+
 function fileSize(filePath) {
     try {
         const bytes = fs.statSync(filePath).size;
@@ -379,3 +408,21 @@ function fileSize(filePath) {
         return "";
     }
 }
+
+module.exports = {
+    fileSize,
+    ensureDir,
+    copyRecursive,
+    findFiles,
+    findImageFile,
+    minifyJS,
+    minifyCSS,
+    minifyHTML,
+    minifyAndWrite,
+    applyReplacements,
+    applyReplacementsToFile,
+    createZip,
+    resolveArtifactName,
+    themeFolderName,
+    IMAGE_EXTS,
+};

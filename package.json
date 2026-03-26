@@ -9,5 +9,8 @@
     "engines": {
         "node": ">=16"
     },
-    "license": "MIT"
+    "license": "MIT",
+    "dependencies": {
+        "esbuild": "^0.27.4"
+    }
 }

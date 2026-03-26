@@ -38,21 +38,29 @@ function buildNextMusic(config) {
         log.warn("No icon image found in theme folder");
     }
 
-    // 2. assets
+    // 2. assets — copy first, then minify .css/.js/.html and apply replacements to .json
     const assetsSource = path.join(themeDir, "assets");
     if (fs.existsSync(assetsSource)) {
         copyRecursive(assetsSource, path.join(outDir, "assets"));
         log.file("copy", "assets/");
-        const assetFiles = findFiles(path.join(outDir, "assets"), [
+
+        // Minify CSS, JS, HTML inside assets (in-place on already-copied files)
+        const minifiableFiles = findFiles(path.join(outDir, "assets"), [
             ".css",
             ".js",
-            ".json",
             ".html",
         ]);
-        for (const f of assetFiles) applyReplacementsToFile(f, replacements);
+        for (const f of minifiableFiles) {
+            minifyAndWrite(f, f, replacements);
+            log.file("minify", path.relative(outDir, f));
+        }
+
+        // Apply replacements only to JSON (no minification)
+        const jsonFiles = findFiles(path.join(outDir, "assets"), [".json"]);
+        for (const f of jsonFiles) applyReplacementsToFile(f, replacements);
     }
 
-    // 3. .js и .css с минификацией
+    // 3. .js и .css с минификацией (вне assets)
     const sourceFiles = findFiles(themeDir, [".js", ".css"]);
     for (const srcFile of sourceFiles) {
         if (srcFile.startsWith(path.join(themeDir, "assets") + path.sep))
@@ -80,7 +88,6 @@ function buildNextMusic(config) {
     }
 
     // 5. ZIP
-    const unpackedDir = path.join(cwd, "dist", unpackedFolder);
     const zipConfig = config.nextmusic?.zip;
     if (zipConfig) {
         const zipName = resolveArtifactName(
