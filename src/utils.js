@@ -1,7 +1,7 @@
-import fs from 'fs';
-import path from 'path';
-import zlib from 'zlib';
-import { createRequire } from 'module';
+import fs from "fs";
+import path from "path";
+import zlib from "zlib";
+import { createRequire } from "module";
 
 // ── esbuild (lazy-loaded) ─────────────────────────────────────────────────────
 
@@ -11,10 +11,10 @@ let _esbuild = null;
 function getEsbuild() {
     if (!_esbuild) {
         try {
-            _esbuild = _require('esbuild');
+            _esbuild = _require("esbuild");
         } catch {
             throw new Error(
-                'esbuild is not installed. Run: npm install --save-dev esbuild',
+                "esbuild is not installed. Run: npm install --save-dev esbuild",
             );
         }
     }
@@ -55,8 +55,16 @@ export function findFiles(dir, exts) {
 }
 
 export const IMAGE_EXTS = [
-    '.png', '.jpg', '.jpeg', '.gif', '.webp',
-    '.avif', '.svg', '.ico', '.bmp', '.tiff',
+    ".png",
+    ".jpg",
+    ".jpeg",
+    ".gif",
+    ".webp",
+    ".avif",
+    ".svg",
+    ".ico",
+    ".bmp",
+    ".tiff",
 ];
 
 export function findImageFile(dir, baseName) {
@@ -73,36 +81,37 @@ export function findImageFile(dir, baseName) {
 // ── Minification ──────────────────────────────────────────────────────────────
 
 export function minifyCSS(src, content) {
-    const code = content !== undefined ? content : fs.readFileSync(src, 'utf8');
-    return getEsbuild().transformSync(code, { loader: 'css', minify: true }).code;
+    const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
+    return getEsbuild().transformSync(code, { loader: "css", minify: true })
+        .code;
 }
 
 export function minifyJS(src, content) {
-    const code = content !== undefined ? content : fs.readFileSync(src, 'utf8');
+    const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
     return getEsbuild().transformSync(code, {
-        loader: 'js',
-        format: 'iife',
+        loader: "js",
+        format: "iife",
         minify: true,
     }).code;
 }
 
 export function minifyHTML(src, content) {
-    let code = content !== undefined ? content : fs.readFileSync(src, 'utf8');
-    code = code.replace(/<!--(?!\[if)[\s\S]*?-->/g, '');
-    code = code.replace(/>\s+</g, '><');
-    code = code.replace(/\s{2,}/g, ' ').trim();
+    let code = content !== undefined ? content : fs.readFileSync(src, "utf8");
+    code = code.replace(/<!--(?!\[if)[\s\S]*?-->/g, "");
+    code = code.replace(/>\s+</g, "><");
+    code = code.replace(/\s{2,}/g, " ").trim();
     return code;
 }
 
 export function minifyAndWrite(srcFile, destFile, replacements = []) {
     const ext = path.extname(srcFile).toLowerCase();
-    let content = fs.readFileSync(srcFile, 'utf8');
+    let content = fs.readFileSync(srcFile, "utf8");
     content = applyReplacements(content, replacements);
-    if (ext === '.css')       content = minifyCSS(srcFile, content);
-    else if (ext === '.js')   content = minifyJS(srcFile, content);
-    else if (ext === '.html') content = minifyHTML(srcFile, content);
+    if (ext === ".css") content = minifyCSS(srcFile, content);
+    else if (ext === ".js") content = minifyJS(srcFile, content);
+    else if (ext === ".html") content = minifyHTML(srcFile, content);
     ensureDir(path.dirname(destFile));
-    fs.writeFileSync(destFile, content, 'utf8');
+    fs.writeFileSync(destFile, content, "utf8");
 }
 
 // ── Replacements ──────────────────────────────────────────────────────────────
@@ -110,28 +119,170 @@ export function minifyAndWrite(srcFile, destFile, replacements = []) {
 export function applyReplacements(content, replacements = []) {
     for (const { from, to } of replacements) {
         if (!from || !to) continue;
-        const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-        content = content.replace(new RegExp(escaped, 'g'), to);
+        const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+        content = content.replace(new RegExp(escaped, "g"), to);
     }
     return content;
 }
 
 export function applyReplacementsToFile(file, replacements = []) {
     if (!replacements.length) return;
-    let content = fs.readFileSync(file, 'utf8');
+    let content = fs.readFileSync(file, "utf8");
     content = applyReplacements(content, replacements);
-    fs.writeFileSync(file, content, 'utf8');
+    fs.writeFileSync(file, content, "utf8");
 }
 
-// ── ZIP (pure Node.js) ────────────────────────────────────────────────────────
+// ── TAR.GZ (pure Node.js) ─────────────────────────────────────────────────────
 
-function uint16LE(n) { const b = Buffer.alloc(2); b.writeUInt16LE(n, 0); return b; }
-function uint32LE(n) { const b = Buffer.alloc(4); b.writeUInt32LE(n >>> 0, 0); return b; }
+function tarChecksum(block) {
+    // block is a 512-byte Buffer; checksum field (offset 148, 8 bytes) treated as spaces
+    let sum = 0;
+    for (let i = 0; i < 512; i++) {
+        sum += i >= 148 && i < 156 ? 32 : block[i];
+    }
+    return sum;
+}
+
+function tarHeader(name, size, mtime, type /* '0' file | '5' dir */, mode) {
+    const block = Buffer.alloc(512, 0);
+    const write = (offset, len, value, encoding = "ascii") => {
+        const b = Buffer.from(value, encoding);
+        b.copy(block, offset, 0, Math.min(b.length, len));
+    };
+
+    // name — up to 100 bytes; longer names go via GNU long-name extension (handled in collectTar)
+    write(0, 100, name);
+    write(
+        100,
+        8,
+        (mode || (type === "5" ? 0o755 : 0o644)).toString(8).padStart(7, "0") +
+            "\0",
+    );
+    write(108, 8, "0000000\0"); // uid
+    write(116, 8, "0000000\0"); // gid
+    write(124, 12, size.toString(8).padStart(11, "0") + "\0");
+    write(
+        136,
+        12,
+        Math.floor(mtime / 1000)
+            .toString(8)
+            .padStart(11, "0") + "\0",
+    );
+    write(148, 8, "        "); // checksum placeholder
+    block[156] = type.charCodeAt(0);
+    write(257, 6, "ustar\0"); // magic
+    write(263, 2, "00"); // version
+
+    const sum = tarChecksum(block);
+    write(148, 8, sum.toString(8).padStart(6, "0") + "\0 ");
+    return block;
+}
+
+function gnuLongNameBlocks(name, type /* 'L' = path, 'K' = link */) {
+    // GNU extension: type 'L' entry carries the real filename as data
+    const nameBytes = Buffer.from(name + "\0", "utf8");
+    const header = tarHeader("././@LongLink", nameBytes.length, 0, type, 0);
+    // override type byte
+    header[156] = type.charCodeAt(0);
+    // recompute checksum after override
+    const sum = tarChecksum(header);
+    Buffer.from(sum.toString(8).padStart(6, "0") + "\0 ", "ascii").copy(
+        header,
+        148,
+    );
+
+    const dataBlocks = Math.ceil(nameBytes.length / 512);
+    const dataBuf = Buffer.alloc(dataBlocks * 512, 0);
+    nameBytes.copy(dataBuf);
+    return [header, dataBuf];
+}
+
+function collectTarEntries(diskPath, archiveName, result = []) {
+    const stat = fs.statSync(diskPath);
+    if (stat.isDirectory()) {
+        const dirName = archiveName.endsWith("/")
+            ? archiveName
+            : archiveName + "/";
+        result.push({ disk: null, name: dirName, stat, type: "5" });
+        for (const entry of fs.readdirSync(diskPath))
+            collectTarEntries(
+                path.join(diskPath, entry),
+                archiveName + "/" + entry,
+                result,
+            );
+    } else {
+        result.push({ disk: diskPath, name: archiveName, stat, type: "0" });
+    }
+    return result;
+}
+
+export function createTarGz(outputPath, entries) {
+    ensureDir(path.dirname(outputPath));
+
+    const tarEntries = [];
+    for (const entry of entries)
+        collectTarEntries(entry.disk, entry.archive, tarEntries);
+
+    const chunks = [];
+
+    for (const entry of tarEntries) {
+        const nameBytes = Buffer.from(entry.name, "utf8");
+
+        // GNU long-name extension if name > 99 bytes
+        if (nameBytes.length > 99) {
+            chunks.push(...gnuLongNameBlocks(entry.name, "L"));
+        }
+
+        if (entry.type === "5") {
+            // Directory entry — no data blocks
+            const truncName =
+                entry.name.length > 99 ? entry.name.slice(-99) : entry.name;
+            chunks.push(tarHeader(truncName, 0, entry.stat.mtimeMs, "5"));
+        } else {
+            const data = fs.readFileSync(entry.disk);
+            const truncName =
+                entry.name.length > 99 ? entry.name.slice(-99) : entry.name;
+            chunks.push(
+                tarHeader(truncName, data.length, entry.stat.mtimeMs, "0"),
+            );
+            // data padded to 512-byte boundary
+            const padded = Buffer.alloc(Math.ceil(data.length / 512) * 512, 0);
+            data.copy(padded);
+            chunks.push(padded);
+        }
+    }
+
+    // Two 512-byte zero blocks — end-of-archive marker
+    chunks.push(Buffer.alloc(1024, 0));
+
+    const tar = Buffer.concat(chunks);
+    const gz = zlib.gzipSync(tar, { level: 9 });
+    fs.writeFileSync(outputPath, gz);
+}
+
+// ── ZIP (pure Node.js) — used for .pext and other ZIP-native formats ──────────
+
+function uint16LE(n) {
+    const b = Buffer.alloc(2);
+    b.writeUInt16LE(n, 0);
+    return b;
+}
+function uint32LE(n) {
+    const b = Buffer.alloc(4);
+    b.writeUInt32LE(n >>> 0, 0);
+    return b;
+}
 
 function dosDateTime(date) {
     const d = date || new Date();
-    const dosDate = ((d.getFullYear() - 1980) << 9) | ((d.getMonth() + 1) << 5) | d.getDate();
-    const dosTime = (d.getHours() << 11) | (d.getMinutes() << 5) | Math.floor(d.getSeconds() / 2);
+    const dosDate =
+        ((d.getFullYear() - 1980) << 9) |
+        ((d.getMonth() + 1) << 5) |
+        d.getDate();
+    const dosTime =
+        (d.getHours() << 11) |
+        (d.getMinutes() << 5) |
+        Math.floor(d.getSeconds() / 2);
     return { date: dosDate, time: dosTime };
 }
 
@@ -142,7 +293,8 @@ function crc32(buf) {
             const t = new Uint32Array(256);
             for (let i = 0; i < 256; i++) {
                 let c = i;
-                for (let j = 0; j < 8; j++) c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+                for (let j = 0; j < 8; j++)
+                    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
                 t[i] = c;
             }
             return t;
@@ -153,13 +305,19 @@ function crc32(buf) {
     return (crc ^ 0xffffffff) >>> 0;
 }
 
-function collectFiles(diskPath, archiveName, result = []) {
+function collectZipFiles(diskPath, archiveName, result = []) {
     const stat = fs.statSync(diskPath);
     if (stat.isDirectory()) {
-        const dirName = archiveName.endsWith('/') ? archiveName : archiveName + '/';
+        const dirName = archiveName.endsWith("/")
+            ? archiveName
+            : archiveName + "/";
         result.push({ disk: null, name: dirName, stat });
         for (const entry of fs.readdirSync(diskPath))
-            collectFiles(path.join(diskPath, entry), archiveName + '/' + entry, result);
+            collectZipFiles(
+                path.join(diskPath, entry),
+                archiveName + "/" + entry,
+                result,
+            );
     } else {
         result.push({ disk: diskPath, name: archiveName, stat });
     }
@@ -170,13 +328,14 @@ export function createZip(outputPath, entries) {
     ensureDir(path.dirname(outputPath));
 
     const files = [];
-    for (const entry of entries) collectFiles(entry.disk, entry.archive, files);
+    for (const entry of entries)
+        collectZipFiles(entry.disk, entry.archive, files);
 
     const chunks = [];
     const centralDir = [];
 
     for (const file of files) {
-        const nameBytes = Buffer.from(file.name, 'utf8');
+        const nameBytes = Buffer.from(file.name, "utf8");
         const { date: dosDate, time: dosTime } = dosDateTime(file.stat.mtime);
         const offset = chunks.reduce((s, c) => s + c.length, 0);
 
@@ -196,74 +355,104 @@ export function createZip(outputPath, entries) {
 
         const useDeflate = !isDir && compressed.length < raw.length;
         const finalMethod = isDir ? 0 : useDeflate ? 8 : 0;
-        const finalData   = isDir ? Buffer.alloc(0) : useDeflate ? compressed : raw;
+        const finalData = isDir
+            ? Buffer.alloc(0)
+            : useDeflate
+              ? compressed
+              : raw;
 
         const localHeader = Buffer.concat([
             Buffer.from([0x50, 0x4b, 0x03, 0x04]),
-            uint16LE(20), uint16LE(0), uint16LE(finalMethod),
-            uint16LE(dosTime), uint16LE(dosDate),
+            uint16LE(20),
+            uint16LE(0),
+            uint16LE(finalMethod),
+            uint16LE(dosTime),
+            uint16LE(dosDate),
             uint32LE(finalCrc),
             uint32LE(finalData.length),
             uint32LE(finalUncompressed),
-            uint16LE(nameBytes.length), uint16LE(0),
+            uint16LE(nameBytes.length),
+            uint16LE(0),
             nameBytes,
         ]);
 
         chunks.push(localHeader);
         chunks.push(finalData);
 
-        centralDir.push(Buffer.concat([
-            Buffer.from([0x50, 0x4b, 0x01, 0x02]),
-            uint16LE(20), uint16LE(20), uint16LE(0), uint16LE(finalMethod),
-            uint16LE(dosTime), uint16LE(dosDate),
-            uint32LE(finalCrc),
-            uint32LE(finalData.length),
-            uint32LE(finalUncompressed),
-            uint16LE(nameBytes.length), uint16LE(0), uint16LE(0), uint16LE(0),
-            uint16LE(isDir ? 16 : 0),
-            uint32LE(isDir ? 0x41ed0000 : 0x81a40000),
-            uint32LE(offset),
-            nameBytes,
-        ]));
+        centralDir.push(
+            Buffer.concat([
+                Buffer.from([0x50, 0x4b, 0x01, 0x02]),
+                uint16LE(20),
+                uint16LE(20),
+                uint16LE(0),
+                uint16LE(finalMethod),
+                uint16LE(dosTime),
+                uint16LE(dosDate),
+                uint32LE(finalCrc),
+                uint32LE(finalData.length),
+                uint32LE(finalUncompressed),
+                uint16LE(nameBytes.length),
+                uint16LE(0),
+                uint16LE(0),
+                uint16LE(0),
+                uint16LE(isDir ? 16 : 0),
+                uint32LE(isDir ? 0x41ed0000 : 0x81a40000),
+                uint32LE(offset),
+                nameBytes,
+            ]),
+        );
     }
 
-    const centralDirBuf    = Buffer.concat(centralDir);
+    const centralDirBuf = Buffer.concat(centralDir);
     const centralDirOffset = chunks.reduce((s, c) => s + c.length, 0);
 
     const eocd = Buffer.concat([
         Buffer.from([0x50, 0x4b, 0x05, 0x06]),
-        uint16LE(0), uint16LE(0),
-        uint16LE(centralDir.length), uint16LE(centralDir.length),
+        uint16LE(0),
+        uint16LE(0),
+        uint16LE(centralDir.length),
+        uint16LE(centralDir.length),
         uint32LE(centralDirBuf.length),
         uint32LE(centralDirOffset),
         uint16LE(0),
     ]);
 
-    fs.writeFileSync(outputPath, Buffer.concat([...chunks, centralDirBuf, eocd]));
+    fs.writeFileSync(
+        outputPath,
+        Buffer.concat([...chunks, centralDirBuf, eocd]),
+    );
 }
 
 // ── Artifact name resolver ────────────────────────────────────────────────────
 
-const PKG_SHORT = { nextmusic: 'nm', pulsesync: 'ps', web: 'web' };
+const PKG_SHORT = { nextmusic: "nm", pulsesync: "ps", web: "web" };
 
 export function resolveArtifactName(template, config, pkg) {
-    const shortPkg  = PKG_SHORT[pkg.toLowerCase()] ?? pkg;
-    const safeName  = (config.themeName || config.theme?.name || '').replace(/\s+/g, '-');
+    const shortPkg = PKG_SHORT[pkg.toLowerCase()] ?? pkg;
+    const safeName = (config.themeName || config.theme?.name || "").replace(
+        /\s+/g,
+        "-",
+    );
     return template
-        .replace('${theme.name}',    safeName)
-        .replace('${theme.version}', config.version || config.theme?.version || '')
-        .replace('${build.package}', shortPkg);
+        .replace("${theme.name}", safeName)
+        .replace(
+            "${theme.version}",
+            config.version || config.theme?.version || "",
+        )
+        .replace("${build.package}", shortPkg);
 }
 
 export function themeFolderName(name, version) {
-    return name.replace(/\s+/g, '-') + '_' + version;
+    return name.replace(/\s+/g, "-") + "_" + version;
 }
 
 export function fileSize(filePath) {
     try {
         const bytes = fs.statSync(filePath).size;
-        if (bytes < 1024)         return `${bytes} B`;
-        if (bytes < 1024 * 1024)  return `${(bytes / 1024).toFixed(1)} KB`;
+        if (bytes < 1024) return `${bytes} B`;
+        if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
         return `${(bytes / 1024 / 1024).toFixed(2)} MB`;
-    } catch { return ''; }
+    } catch {
+        return "";
+    }
 }
