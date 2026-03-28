@@ -1,16 +1,21 @@
-import { loadConfig } from './config.js';
-import { buildAll, buildPackage } from './builder.js';
-import { init } from './init.js';
-import * as log from './logger.js';
-import { createRequire } from 'module';
+import { loadConfig } from "./config.js";
+import { buildAll, buildPackage } from "./builder.js";
+import { init } from "./init.js";
+import * as log from "./logger.js";
+import { createRequire } from "module";
 
 const _require = createRequire(import.meta.url);
-const { version } = _require('../package.json');
+const { version } = _require("../package.json");
 
 export function run(args) {
     const [command, ...rest] = args;
 
-    if (command === 'init') {
+    if (command === "version" || "ver") {
+        console.log(`ymtm: ${version}`);
+        return;
+    }
+
+    if (command === "init") {
         try {
             init(process.cwd());
         } catch (e) {
@@ -20,8 +25,8 @@ export function run(args) {
         return;
     }
 
-    if (command === 'build') {
-        log.header('ymtm', version);
+    if (command === "build") {
+        log.header("ymtm", version);
 
         let config;
         try {
@@ -45,6 +50,6 @@ export function run(args) {
         return;
     }
 
-    log.error(`Unknown command: "${command}". Available: init, build`);
+    log.error(`Unknown command: "${command}".`);
     process.exit(1);
 }
