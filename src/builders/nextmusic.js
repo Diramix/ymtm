@@ -83,16 +83,13 @@ export function buildNextMusic(config) {
     }
 
     // 5. TAR.GZ
-    const tarGzConfig = config.nextmusic?.tarGz ?? config.nextmusic?.zip; // поддержка обоих ключей конфига
+    const tarGzConfig = config.nextmusic?.tarGz;
     if (tarGzConfig) {
-        // Принудительно заменяем расширение на .tar.gz — никакого ZIP или иного формата
-        const rawName = resolveArtifactName(
+        const tarGzName = resolveArtifactName(
             tarGzConfig.artifactName,
             config,
             "nextmusic",
         );
-        const tarGzName =
-            rawName.replace(/\.(zip|tar\.gz|tgz)$/i, "") + ".tar.gz";
         const tarGzPath = path.join(cwd, "dist", tarGzName);
         createTarGz(tarGzPath, [{ disk: outDir, archive: name }]);
         log.artifact(tarGzName, fileSize(tarGzPath));
