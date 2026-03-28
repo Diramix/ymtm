@@ -1,13 +1,16 @@
-const { loadConfig } = require("./config");
-const { buildAll, buildPackage } = require("./builder");
-const { init } = require("./init");
-const log = require("./logger");
-const { version } = require("../package.json");
+import { loadConfig } from './config.js';
+import { buildAll, buildPackage } from './builder.js';
+import { init } from './init.js';
+import * as log from './logger.js';
+import { createRequire } from 'module';
 
-function run(args) {
+const _require = createRequire(import.meta.url);
+const { version } = _require('../package.json');
+
+export function run(args) {
     const [command, ...rest] = args;
 
-    if (command === "init") {
+    if (command === 'init') {
         try {
             init(process.cwd());
         } catch (e) {
@@ -17,8 +20,8 @@ function run(args) {
         return;
     }
 
-    if (command === "build") {
-        log.header("ymtm", version);
+    if (command === 'build') {
+        log.header('ymtm', version);
 
         let config;
         try {
@@ -32,9 +35,7 @@ function run(args) {
             if (rest.length === 0) {
                 buildAll(config);
             } else {
-                for (const pkg of rest) {
-                    buildPackage(config, pkg);
-                }
+                for (const pkg of rest) buildPackage(config, pkg);
             }
         } catch (e) {
             log.error(`Build failed: ${e.message}`);
@@ -47,5 +48,3 @@ function run(args) {
     log.error(`Unknown command: "${command}". Available: init, build`);
     process.exit(1);
 }
-
-module.exports = { run };

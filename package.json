@@ -2,15 +2,16 @@
     "name": "ymtm",
     "version": "1.2.0",
     "description": "Yandex Music Theme Maker",
+    "type": "module",
     "bin": {
         "ymtm": "./bin/ymtm.js"
     },
     "main": "src/cli.js",
     "engines": {
-        "node": ">=16"
+        "node": ">=18"
     },
     "license": "MIT",
-    "dependencies": {
+    "devDependencies": {
         "esbuild": "^0.27.4"
     }
 }
