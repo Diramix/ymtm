@@ -10,11 +10,6 @@ const { version } = _require("../package.json");
 export function run(args) {
     const [command, ...rest] = args;
 
-    if (command === "version" || "ver") {
-        console.log(`ymtm: ${version}`);
-        return;
-    }
-
     if (command === "init") {
         try {
             init(process.cwd());
@@ -50,6 +45,11 @@ export function run(args) {
         return;
     }
 
-    log.error(`Unknown command: "${command}".`);
+    if (command === "version" || command === "ver") {
+        console.log(`ymtm: ${version}`);
+        return;
+    }
+
+    log.error(`Unknown command: "${command}"`);
     process.exit(1);
 }
