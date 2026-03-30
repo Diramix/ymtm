@@ -16,13 +16,13 @@ import {
 
 export function buildNextMusic(config) {
     const cwd = config._cwd;
-    const name = config.themeName;
+    const name = config.addonName;
     const version = config.version;
     const themeDir = config._themeDir;
     const replacements = config.web?.replaceLink ?? [];
 
     log.task("nextmusic");
-    log.info("building", { target: "nextmusic", themeName: name, version });
+    log.info("building", { target: "nextmusic", addonName: name, version });
 
     const unpackedFolder = themeFolderName(name, version) + "_nm-unpacked";
     const outDir = path.join(cwd, "dist", unpackedFolder, name);

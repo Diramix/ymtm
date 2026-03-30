@@ -429,7 +429,7 @@ const PKG_SHORT = { nextmusic: "nm", pulsesync: "ps", web: "web" };
 
 export function resolveArtifactName(template, config, pkg) {
     const shortPkg = PKG_SHORT[pkg.toLowerCase()] ?? pkg;
-    const safeName = (config.themeName || config.theme?.name || "").replace(
+    const safeName = (config.addonName || config.theme?.name || "").replace(
         /\s+/g,
         "-",
     );

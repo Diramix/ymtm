@@ -48,7 +48,7 @@ dist/
 ```
 {
     "name": "example-theme",
-    "themeName" "Example Theme!",
+    "addonName" "Example Theme!",
     "version": "1.0.0",
     "description": "Example description",
     "author": "Your name",
