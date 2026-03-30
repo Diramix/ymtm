@@ -429,20 +429,20 @@ const PKG_SHORT = { nextmusic: "nm", pulsesync: "ps", web: "web" };
 
 export function resolveArtifactName(template, config, pkg) {
     const shortPkg = PKG_SHORT[pkg.toLowerCase()] ?? pkg;
-    const safeName = (config.addonName || config.theme?.name || "").replace(
+    const safeName = (config.addonName || config.addon?.name || "").replace(
         /\s+/g,
         "-",
     );
     return template
-        .replace("${theme.name}", safeName)
+        .replace("${addon.name}", safeName)
         .replace(
-            "${theme.version}",
-            config.version || config.theme?.version || "",
+            "${addon.version}",
+            config.version || config.addon?.version || "",
         )
         .replace("${build.package}", shortPkg);
 }
 
-export function themeFolderName(name, version) {
+export function addonFolderName(name, version) {
     return name.replace(/\s+/g, "-") + "_" + version;
 }
 

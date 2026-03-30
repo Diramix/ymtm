@@ -3,7 +3,7 @@ import path from "path";
 import * as log from "./logger.js";
 
 const DEFAULT_METADATA = {
-    name: "theme",
+    name: "addon",
     author: ["developer"],
     description: "Hello, World!",
     type: "theme",
@@ -13,8 +13,8 @@ const DEFAULT_METADATA = {
 };
 
 const DEFAULT_PKG = {
-    name: "my-theme",
-    addonName: "My Theme",
+    name: "my-addon",
+    addonName: "My Addon",
     version: "1.0.0",
     description: "Hello, World!",
     author: "developer",
@@ -29,14 +29,14 @@ const DEFAULT_PKG = {
         package: ["nextmusic", "pulsesync", "web"],
     },
     nextmusic: {
-        zip: { artifactName: "${theme.name}_${theme.version}_nm.zip" },
+        zip: { artifactName: "${addon.name}_${addon.version}_nm.zip" },
     },
     pulsesync: {
-        zip: { artifactName: "${theme.name}_${theme.version}_ps.zip" },
-        pext: { artifactName: "${theme.name}_${theme.version}_ps.pext" },
+        zip: { artifactName: "${addon.name}_${addon.version}_ps.zip" },
+        pext: { artifactName: "${addon.name}_${addon.version}_ps.pext" },
     },
     web: {
-        zip: { artifactName: "${theme.name}_${theme.version}_web.zip" },
+        zip: { artifactName: "${addon.name}_${addon.version}_web.zip" },
     },
     devDependencies: {
         ymtm: "github:your-username/ymtm",
@@ -45,7 +45,7 @@ const DEFAULT_PKG = {
 
 export function init(cwd = process.cwd()) {
     const addonName = DEFAULT_METADATA.name;
-    const themeDir = path.join(cwd, addonName);
+    const addonDir = path.join(cwd, addonName);
     const pkgPath = path.join(cwd, "package.json");
 
     log.task("init");
@@ -58,12 +58,12 @@ export function init(cwd = process.cwd()) {
         log.file("write", "package.json");
     }
 
-    // theme folder
-    fs.mkdirSync(themeDir, { recursive: true });
+    // addon folder
+    fs.mkdirSync(addonDir, { recursive: true });
     log.file("write", `${addonName}/`);
 
     // metadata.json
-    const metaPath = path.join(themeDir, "metadata.json");
+    const metaPath = path.join(addonDir, "metadata.json");
     if (!fs.existsSync(metaPath)) {
         fs.writeFileSync(
             metaPath,
@@ -74,14 +74,14 @@ export function init(cwd = process.cwd()) {
     }
 
     // style.css
-    const cssPath = path.join(themeDir, "style.css");
+    const cssPath = path.join(addonDir, "style.css");
     if (!fs.existsSync(cssPath)) {
         fs.writeFileSync(cssPath, "{}", "utf8");
         log.file("write", `${addonName}/style.css`);
     }
 
     // script.js
-    const jsPath = path.join(themeDir, "script.js");
+    const jsPath = path.join(addonDir, "script.js");
     if (!fs.existsSync(jsPath)) {
         fs.writeFileSync(jsPath, "{}", "utf8");
         log.file("write", `${addonName}/script.js`);

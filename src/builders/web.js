@@ -58,8 +58,8 @@ function extractFileNameFromUrlOrPath(value) {
 }
 
 function buildWebReplacementMap(config) {
-    const themeDir = config._themeDir;
-    const assetsDir = path.join(themeDir, "assets");
+    const addonDir = config._addonDir;
+    const assetsDir = path.join(addonDir, "assets");
     const replacements = config.web?.replaceLink ?? [];
     const map = [];
 
@@ -113,7 +113,7 @@ function cssToJS(cssContent) {
 
 function buildTMHeader(metadata, config) {
     const icon = config?.web?.icon || "";
-    const name = metadata?.name || config.addonName || "Theme";
+    const name = metadata?.name || config.addonName || "Addon";
     const version = metadata?.version || config.version || "1.0.0";
     const description = metadata?.description || config.description || "";
     const author = Array.isArray(metadata?.author)
@@ -139,29 +139,29 @@ function buildTMHeader(metadata, config) {
 
 function buildWebOnefile(config) {
     const cwd = config._cwd;
-    const themeDir = config._themeDir;
+    const addonDir = config._addonDir;
     const metadata = config._metadata;
     const replacements = buildWebReplacementMap(config);
     const onefileCfg = config.web?.onefile;
 
     // CSS → CSS-in-JS
     let cssBlock = "";
-    for (const f of findFiles(themeDir, [".css"])) {
+    for (const f of findFiles(addonDir, [".css"])) {
         let content = fs.readFileSync(f, "utf8");
         content = applyReplacements(content, replacements);
         content = minifyCSS(f, content);
         cssBlock += cssToJS(content) + "\n";
-        log.file("minify", `${path.relative(themeDir, f)} → css-in-js`);
+        log.file("minify", `${path.relative(addonDir, f)} → css-in-js`);
     }
 
     // JS
     let jsBlock = "";
-    for (const f of findFiles(themeDir, [".js"])) {
+    for (const f of findFiles(addonDir, [".js"])) {
         let content = fs.readFileSync(f, "utf8");
         content = applyReplacements(content, replacements);
         content = minifyJS(f, content);
         jsBlock += content + "\n";
-        log.file("minify", path.relative(themeDir, f));
+        log.file("minify", path.relative(addonDir, f));
     }
 
     const header = buildTMHeader(metadata, config);

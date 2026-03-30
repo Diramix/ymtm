@@ -12,9 +12,9 @@ export function loadConfig(cwd = process.cwd()) {
     pkg._cwd = cwd;
 
     // Определяем папку с темой
-    let themeDir = null;
+    let addonDir = null;
     if (pkg.addonName) {
-        themeDir = path.join(cwd, pkg.addonName);
+        addonDir = path.join(cwd, pkg.addonName);
     } else {
         for (const entry of fs.readdirSync(cwd)) {
             const candidate = path.join(cwd, entry);
@@ -22,7 +22,7 @@ export function loadConfig(cwd = process.cwd()) {
                 fs.statSync(candidate).isDirectory() &&
                 fs.existsSync(path.join(candidate, "metadata.json"))
             ) {
-                themeDir = candidate;
+                addonDir = candidate;
                 break;
             }
         }
@@ -30,15 +30,15 @@ export function loadConfig(cwd = process.cwd()) {
 
     // Читаем metadata.json
     let metadata = null;
-    if (themeDir) {
-        const metaPath = path.join(themeDir, "metadata.json");
+    if (addonDir) {
+        const metaPath = path.join(addonDir, "metadata.json");
         if (fs.existsSync(metaPath))
             metadata = JSON.parse(fs.readFileSync(metaPath, "utf8"));
     }
 
     pkg.addonName = metadata?.name || pkg.addonName;
     pkg.version = metadata?.version || pkg.version;
-    pkg._themeDir = themeDir || path.join(cwd, pkg.addonName || "theme");
+    pkg._addonDir = addonDir || path.join(cwd, pkg.addonName || "addon");
     pkg._metadata = metadata;
 
     if (!pkg.addonName)

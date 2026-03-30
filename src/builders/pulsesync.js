@@ -9,7 +9,7 @@ import {
     applyReplacementsToFile,
     createZip,
     resolveArtifactName,
-    themeFolderName,
+    addonFolderName,
     IMAGE_EXTS,
     fileSize,
 } from "../utils.js";
@@ -18,27 +18,27 @@ export function buildPulseSync(config) {
     const cwd = config._cwd;
     const name = config.addonName;
     const version = config.version;
-    const themeDir = config._themeDir;
+    const addonDir = config._addonDir;
     const replacements = config.web?.replaceLink ?? [];
 
     log.task("pulsesync");
     log.info("building", { target: "pulsesync", addonName: name, version });
 
-    const unpackedFolder = themeFolderName(name, version) + "_ps-unpacked";
+    const unpackedFolder = addonFolderName(name, version) + "_ps-unpacked";
     const outDir = path.join(cwd, "dist", unpackedFolder, name);
     ensureDir(outDir);
 
     // 1. metadata.json
-    const metaSrc = path.join(themeDir, "metadata.json");
+    const metaSrc = path.join(addonDir, "metadata.json");
     if (fs.existsSync(metaSrc)) {
         fs.copyFileSync(metaSrc, path.join(outDir, "metadata.json"));
         log.file("write", "metadata.json");
     } else {
-        log.warn("metadata.json not found in theme folder");
+        log.warn("metadata.json not found in addon folder");
     }
 
     // 2. assets
-    const assetsSource = path.join(themeDir, "assets");
+    const assetsSource = path.join(addonDir, "assets");
     if (fs.existsSync(assetsSource)) {
         copyRecursive(assetsSource, path.join(outDir, "assets"));
         log.file("copy", "assets/");
@@ -56,23 +56,23 @@ export function buildPulseSync(config) {
     }
 
     // 3. .js / .css вне assets
-    for (const srcFile of findFiles(themeDir, [".js", ".css"])) {
-        if (srcFile.startsWith(path.join(themeDir, "assets") + path.sep))
+    for (const srcFile of findFiles(addonDir, [".js", ".css"])) {
+        if (srcFile.startsWith(path.join(addonDir, "assets") + path.sep))
             continue;
-        const rel = path.relative(themeDir, srcFile);
+        const rel = path.relative(addonDir, srcFile);
         minifyAndWrite(srcFile, path.join(outDir, rel), replacements);
         log.file("minify", rel);
     }
 
     // 4. README.md
-    const readmeSrc = path.join(themeDir, "README.md");
+    const readmeSrc = path.join(addonDir, "README.md");
     if (fs.existsSync(readmeSrc)) {
         fs.copyFileSync(readmeSrc, path.join(outDir, "README.md"));
         log.file("copy", "README.md");
     }
 
     // 4.1. handleEvents.json
-    const handleEventsSrc = path.join(themeDir, "handleEvents.json");
+    const handleEventsSrc = path.join(addonDir, "handleEvents.json");
     if (fs.existsSync(handleEventsSrc)) {
         fs.copyFileSync(
             handleEventsSrc,
@@ -82,8 +82,8 @@ export function buildPulseSync(config) {
     }
 
     // 5. Картинки
-    for (const entry of fs.readdirSync(themeDir)) {
-        const srcFile = path.join(themeDir, entry);
+    for (const entry of fs.readdirSync(addonDir)) {
+        const srcFile = path.join(addonDir, entry);
         if (fs.statSync(srcFile).isDirectory()) continue;
         if (IMAGE_EXTS.includes(path.extname(entry).toLowerCase())) {
             fs.copyFileSync(srcFile, path.join(outDir, entry));
