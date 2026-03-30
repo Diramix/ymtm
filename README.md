@@ -1,17 +1,14 @@
 ## Installation
 
 ```
-npm install github:Diramix/ymtm
+npm install --save-dev @diram1x/ymtm
 ```
-
-You can specify a version during installation like this:
-`github:Diramix/ymtm#1.2.0`
 
 ## Build Outputs
 
 | Client                                                                | Build Command          | Formats         |
 | --------------------------------------------------------------------- | ---------------------- | --------------- |
-| **[Next Music](https://github.com/Web-Next-Music/Next-Music-Client)** | `ymtm build nextmusic` | `.zip`          |
+| **[Next Music](https://github.com/Web-Next-Music/Next-Music-Client)** | `ymtm build nextmusic` | `.tar.gz`          |
 | **[PulseSync](https://pulsesync.dev/)**                               | `ymtm build pulsesync` | `.zip`, `.pext` |
 | **[Yandex Music Web](https://music.yandex.ru/)**                      | `ymtm build web`       | `.user.js`      |
 
@@ -38,7 +35,7 @@ ${theme.name}_${theme.version}_${build.package}.ext
 
 ```id="9rpqdb"
 dist/
-├── Example-Theme_1.0.0_nm.zip
+├── Example-Theme_1.0.0_nm.tar.gz
 ├── Example-Theme_1.0.0_ps.zip
 ├── Example-Theme_1.0.0_ps.pext
 └── Example-Theme_1.0.0_web.user.js
@@ -67,8 +64,8 @@ dist/
         ]
     },
     "nextmusic": {
-        "zip": {
-            "artifactName": "Example-Theme_${theme.version}_${build.package}.zip"
+        "tarGz": {
+            "artifactName": "Example-Theme_${theme.version}_${build.package}.tar.gz"
         }
     },
     "pulsesync": {
@@ -94,10 +91,8 @@ dist/
             }
         ]
     },
-    "dependencies": {
-        "ymtm": "github:Diramix/ymtm#1.2.0"
-    },
     "devDependencies": {
+        "@diram1x/ymtm": "^2.2.0"
         "esbuild": "^0.27.4"
     }
 }
