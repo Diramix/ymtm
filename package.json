@@ -1,8 +1,11 @@
 {
-    "name": "ymtm",
+    "name": "@diram1x/ymtm",
     "version": "2.1.0",
     "description": "Yandex Music Theme Maker",
     "type": "module",
+    "publishConfig": {
+        "access": "public"
+    },
     "bin": {
         "ymtm": "./bin/ymtm.js"
     },
