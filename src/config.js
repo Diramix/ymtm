@@ -46,5 +46,11 @@ export function loadConfig(cwd = process.cwd()) {
             '"addonName" is required (in package.json or metadata.json)',
         );
 
+    // Читаем .buildignore рядом с package.json
+    const ignorePath = path.join(cwd, ".buildignore");
+    pkg._buildIgnore = fs.existsSync(ignorePath)
+        ? fs.readFileSync(ignorePath, "utf8")
+        : "";
+
     return pkg;
 }

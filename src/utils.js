@@ -23,17 +23,94 @@ function getEsbuild() {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
+/**
+ * Парсит содержимое .buildignore в массив правил.
+ * Поддерживает:
+ *   - комментарии (#)
+ *   - расширения файлов  (.map, *.map)
+ *   - имена файлов/папок (README.md, .DS_Store)
+ *   - пути с /           (src/dev/, src/dev/file.js)
+ *   - glob-паттерны *    (*.test.js, dev_*)
+ */
+export function parseBuildIgnore(raw = "") {
+    return raw
+        .split(/\r?\n/)
+        .map((l) => l.trim())
+        .filter((l) => l && !l.startsWith("#"));
+}
+
+/**
+ * Проверяет, нужно ли исключить файл/папку из сборки.
+ * @param {string} diskPath  - абсолютный путь на диске
+ * @param {string[]} rules   - результат parseBuildIgnore()
+ */
+export function shouldIgnore(diskPath, rules) {
+    if (!rules || rules.length === 0) return false;
+
+    const normalised = diskPath.replace(/\\/g, "/");
+    const basename = path.basename(diskPath);
+    const ext = path.extname(basename).toLowerCase();
+
+    for (const rule of rules) {
+        // Расширение: .map  или  *.map
+        if (
+            rule.startsWith("*.") ||
+            (rule.startsWith(".") && !rule.includes("/"))
+        ) {
+            const ruleExt = rule.startsWith("*.") ? rule.slice(1) : rule;
+            if (ext === ruleExt.toLowerCase()) return true;
+            continue;
+        }
+
+        // Glob в имени файла без пути (напр. *.test.js, dev_*)
+        if (!rule.includes("/") && rule.includes("*")) {
+            if (minimatch(basename, rule)) return true;
+            continue;
+        }
+
+        // Путь или имя без glob
+        const ruleClean = rule.replace(/\/$/, ""); // убираем trailing /
+        if (!ruleClean.includes("/")) {
+            // просто имя — совпадение с basename
+            if (basename === ruleClean) return true;
+        } else {
+            // путь — проверяем суффикс нормализованного пути
+            if (
+                normalised.endsWith("/" + ruleClean) ||
+                normalised.includes("/" + ruleClean + "/")
+            )
+                return true;
+        }
+    }
+    return false;
+}
+
+/** Простейший minimatch для паттернов с * (без рекурсивных **) */
+function minimatch(str, pattern) {
+    const re = new RegExp(
+        "^" +
+            pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") +
+            "$",
+    );
+    return re.test(str);
+}
+
 export function ensureDir(dir) {
     fs.mkdirSync(dir, { recursive: true });
 }
 
-export function copyRecursive(src, dest) {
+export function copyRecursive(src, dest, ignoreRules = []) {
     if (!fs.existsSync(src)) return;
+    if (shouldIgnore(src, ignoreRules)) return;
     const stat = fs.statSync(src);
     if (stat.isDirectory()) {
         ensureDir(dest);
         for (const entry of fs.readdirSync(src))
-            copyRecursive(path.join(src, entry), path.join(dest, entry));
+            copyRecursive(
+                path.join(src, entry),
+                path.join(dest, entry),
+                ignoreRules,
+            );
     } else {
         ensureDir(path.dirname(dest));
         fs.copyFileSync(src, dest);
@@ -197,7 +274,13 @@ function gnuLongNameBlocks(name, type /* 'L' = path, 'K' = link */) {
     return [header, dataBuf];
 }
 
-function collectTarEntries(diskPath, archiveName, result = []) {
+function collectTarEntries(
+    diskPath,
+    archiveName,
+    result = [],
+    ignoreRules = [],
+) {
+    if (shouldIgnore(diskPath, ignoreRules)) return result;
     const stat = fs.statSync(diskPath);
     if (stat.isDirectory()) {
         const dirName = archiveName.endsWith("/")
@@ -209,6 +292,7 @@ function collectTarEntries(diskPath, archiveName, result = []) {
                 path.join(diskPath, entry),
                 archiveName + "/" + entry,
                 result,
+                ignoreRules,
             );
     } else {
         result.push({ disk: diskPath, name: archiveName, stat, type: "0" });
@@ -216,12 +300,12 @@ function collectTarEntries(diskPath, archiveName, result = []) {
     return result;
 }
 
-export function createTarGz(outputPath, entries) {
+export function createTarGz(outputPath, entries, ignoreRules = []) {
     ensureDir(path.dirname(outputPath));
 
     const tarEntries = [];
     for (const entry of entries)
-        collectTarEntries(entry.disk, entry.archive, tarEntries);
+        collectTarEntries(entry.disk, entry.archive, tarEntries, ignoreRules);
 
     const chunks = [];
 
@@ -305,7 +389,8 @@ function crc32(buf) {
     return (crc ^ 0xffffffff) >>> 0;
 }
 
-function collectZipFiles(diskPath, archiveName, result = []) {
+function collectZipFiles(diskPath, archiveName, result = [], ignoreRules = []) {
+    if (shouldIgnore(diskPath, ignoreRules)) return result;
     const stat = fs.statSync(diskPath);
     if (stat.isDirectory()) {
         const dirName = archiveName.endsWith("/")
@@ -317,6 +402,7 @@ function collectZipFiles(diskPath, archiveName, result = []) {
                 path.join(diskPath, entry),
                 archiveName + "/" + entry,
                 result,
+                ignoreRules,
             );
     } else {
         result.push({ disk: diskPath, name: archiveName, stat });
@@ -324,12 +410,12 @@ function collectZipFiles(diskPath, archiveName, result = []) {
     return result;
 }
 
-export function createZip(outputPath, entries) {
+export function createZip(outputPath, entries, ignoreRules = []) {
     ensureDir(path.dirname(outputPath));
 
     const files = [];
     for (const entry of entries)
-        collectZipFiles(entry.disk, entry.archive, files);
+        collectZipFiles(entry.disk, entry.archive, files, ignoreRules);
 
     const chunks = [];
     const centralDir = [];

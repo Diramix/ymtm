@@ -12,6 +12,7 @@ import {
     resolveArtifactName,
     addonFolderName,
     fileSize,
+    parseBuildIgnore,
 } from "../utils.js";
 
 export function buildNextMusic(config) {
@@ -20,6 +21,7 @@ export function buildNextMusic(config) {
     const version = config.version;
     const addonDir = config._addonDir;
     const replacements = config.web?.replaceLink ?? [];
+    const ignoreRules = parseBuildIgnore(config._buildIgnore);
 
     log.task("nextmusic");
     log.info("building", { target: "nextmusic", addonName: name, version });
@@ -41,7 +43,7 @@ export function buildNextMusic(config) {
     // 2. assets
     const assetsSource = path.join(addonDir, "assets");
     if (fs.existsSync(assetsSource)) {
-        copyRecursive(assetsSource, path.join(outDir, "assets"));
+        copyRecursive(assetsSource, path.join(outDir, "assets"), ignoreRules);
         log.file("copy", "assets/");
 
         for (const f of findFiles(path.join(outDir, "assets"), [
@@ -91,7 +93,7 @@ export function buildNextMusic(config) {
             "nextmusic",
         );
         const tarGzPath = path.join(cwd, "dist", tarGzName);
-        createTarGz(tarGzPath, [{ disk: outDir, archive: name }]);
+        createTarGz(tarGzPath, [{ disk: outDir, archive: name }], ignoreRules);
         log.artifact(tarGzName, fileSize(tarGzPath));
         log.done("nextmusic", tarGzName);
     } else {
