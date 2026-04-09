@@ -113,7 +113,7 @@ function watchDirFallback(dir, config, target) {
 
 // ── Entry point ───────────────────────────────────────────────────────────────
 
-export async function runDev() {
+export async function runDev(cliTarget) {
     let config;
     try {
         config = loadConfig();
@@ -122,20 +122,28 @@ export async function runDev() {
         process.exit(1);
     }
 
-    const allPackages = (config.build?.package ?? []).map((p) =>
-        p.toLowerCase(),
-    );
-    const devTargets = allPackages.filter((p) => p !== "web");
+    const allTargets = config._targets ?? [];
+    const devTargets = allTargets.filter((t) => t !== "web");
 
     if (devTargets.length === 0) {
         log.error(
-            'No dev-compatible targets found. Add "nextmusic" or "pulsesync" to build.package.',
+            'No dev-compatible targets found. Add "nextmusic" or "pulsesync" to build.targets.',
         );
         process.exit(1);
     }
 
     let target;
-    if (devTargets.length === 1) {
+
+    if (cliTarget) {
+        const key = cliTarget.toLowerCase();
+        if (!devTargets.includes(key)) {
+            log.error(
+                `Target "${cliTarget}" is not listed in build.targets. Available dev targets: ${devTargets.join(", ")}`,
+            );
+            process.exit(1);
+        }
+        target = key;
+    } else if (devTargets.length === 1) {
         target = devTargets[0];
     } else {
         target = await prompt("Select build target:", devTargets);

@@ -12,6 +12,11 @@ export function loadConfig(cwd = process.cwd()) {
     const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8"));
     if (!pkg.build) throw new Error('"build" is required in package.json');
 
+    // ── Normalise targets list ─────────────────────────────────────────────────
+    // Accepts both "targets" (new) and "package" (legacy) keys.
+    const rawTargets = pkg.build.targets ?? pkg.build.package ?? [];
+    pkg._targets = rawTargets.map((t) => t.toLowerCase());
+
     pkg._cwd = cwd;
 
     // ── ymtm version ──────────────────────────────────────────────────────────

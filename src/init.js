@@ -28,7 +28,7 @@ const DEFAULT_PKG = {
     },
     build: {
         src: "src",
-        package: ["nextmusic", "pulsesync", "web"],
+        targets: ["nextmusic", "pulsesync", "web"],
     },
     nextmusic: {
         tarGz: { artifactName: "${addon.name}_${addon.version}_nm.tar.gz" },

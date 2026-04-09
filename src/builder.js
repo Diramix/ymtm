@@ -21,12 +21,12 @@ const DEV_BUILDERS = {
 // ── Production build ──────────────────────────────────────────────────────────
 
 export function buildAll(config) {
-    const packages = config.build?.package ?? [];
-    if (packages.length === 0) {
-        log.warn("No packages defined in build.package");
+    const targets = config._targets ?? [];
+    if (targets.length === 0) {
+        log.warn("No targets defined in build.targets");
         return;
     }
-    for (const pkg of packages) buildPackage(config, pkg);
+    for (const t of targets) buildPackage(config, t);
 }
 
 export function buildPackage(config, pkg) {
@@ -34,7 +34,7 @@ export function buildPackage(config, pkg) {
     const builder = BUILDERS[key];
     if (!builder) {
         log.error(
-            `Unknown package: "${pkg}". Available: ${Object.keys(BUILDERS).join(", ")}`,
+            `Unknown target: "${pkg}". Available: ${Object.keys(BUILDERS).join(", ")}`,
         );
         return;
     }
