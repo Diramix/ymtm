@@ -1,5 +1,6 @@
 import { loadConfig } from "./config.js";
 import { buildAll, buildPackage } from "./builder.js";
+import { runDev } from "./dev.js";
 import { init } from "./init.js";
 import * as log from "./logger.js";
 import { createRequire } from "module";
@@ -17,6 +18,16 @@ export function run(args) {
             log.error(`Init failed: ${e.message}`);
             process.exit(1);
         }
+        return;
+    }
+
+    if (command === "dev") {
+        // runDev() is async (interactive prompt)
+        runDev().catch((e) => {
+            log.error(`Dev failed: ${e.message}`);
+            if (process.env.DEBUG) console.error(e.stack);
+            process.exit(1);
+        });
         return;
     }
 

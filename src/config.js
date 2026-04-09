@@ -1,5 +1,8 @@
 import fs from "fs";
 import path from "path";
+import { createRequire } from "module";
+
+const _require = createRequire(import.meta.url);
 
 export function loadConfig(cwd = process.cwd()) {
     const pkgPath = path.join(cwd, "package.json");
@@ -11,42 +14,36 @@ export function loadConfig(cwd = process.cwd()) {
 
     pkg._cwd = cwd;
 
-    // Определяем папку с темой
-    let addonDir = null;
-    if (pkg.addonName) {
-        addonDir = path.join(cwd, pkg.addonName);
-    } else {
-        for (const entry of fs.readdirSync(cwd)) {
-            const candidate = path.join(cwd, entry);
-            if (
-                fs.statSync(candidate).isDirectory() &&
-                fs.existsSync(path.join(candidate, "metadata.json"))
-            ) {
-                addonDir = candidate;
-                break;
-            }
-        }
+    // ── ymtm version ──────────────────────────────────────────────────────────
+    try {
+        const selfPkg = _require("../package.json");
+        pkg._version = selfPkg.version || "1.0.0";
+    } catch {
+        pkg._version = "1.0.0";
     }
 
-    // Читаем metadata.json
+    // ── Source directory ──────────────────────────────────────────────────────
+    // pkg.build.src  → relative path from cwd, default "src"
+    const srcRelative = pkg.build?.src ?? "src";
+    pkg._srcDir = path.join(cwd, srcRelative);
+
+    // ── metadata.json ─────────────────────────────────────────────────────────
+    // Looked up directly in _srcDir (not in a named sub-folder)
     let metadata = null;
-    if (addonDir) {
-        const metaPath = path.join(addonDir, "metadata.json");
-        if (fs.existsSync(metaPath))
-            metadata = JSON.parse(fs.readFileSync(metaPath, "utf8"));
-    }
+    const metaPath = path.join(pkg._srcDir, "metadata.json");
+    if (fs.existsSync(metaPath))
+        metadata = JSON.parse(fs.readFileSync(metaPath, "utf8"));
 
-    pkg.addonName = metadata?.name || pkg.addonName;
-    pkg.version = metadata?.version || pkg.version;
-    pkg._addonDir = addonDir || path.join(cwd, pkg.addonName || "addon");
+    pkg.addonName = metadata?.name ?? pkg.addonName;
+    pkg.version = metadata?.version ?? pkg.version;
     pkg._metadata = metadata;
 
     if (!pkg.addonName)
         throw new Error(
-            '"addonName" is required (in package.json or metadata.json)',
+            '"addonName" is required (in package.json or src/metadata.json)',
         );
 
-    // Читаем .buildignore рядом с package.json
+    // ── .buildignore ──────────────────────────────────────────────────────────
     const ignorePath = path.join(cwd, ".buildignore");
     pkg._buildIgnore = fs.existsSync(ignorePath)
         ? fs.readFileSync(ignorePath, "utf8")

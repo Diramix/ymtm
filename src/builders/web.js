@@ -9,6 +9,7 @@ import {
     minifyJS,
     minifyCSS,
 } from "../utils.js";
+import { collectSourceFiles } from "../src-resolver.js";
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -39,11 +40,10 @@ function findAssetFile(assetsDir, targetName) {
     const stack = [assetsDir];
     while (stack.length) {
         const dir = stack.pop();
-        const entries = fs.readdirSync(dir, { withFileTypes: true });
-        for (const entry of entries) {
+        for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
             const full = path.join(dir, entry.name);
             if (entry.isDirectory()) stack.push(full);
-            else if (entry.isFile() && entry.name === targetName) return full;
+            else if (entry.name === targetName) return full;
         }
     }
     return null;
@@ -58,8 +58,8 @@ function extractFileNameFromUrlOrPath(value) {
 }
 
 function buildWebReplacementMap(config) {
-    const addonDir = config._addonDir;
-    const assetsDir = path.join(addonDir, "assets");
+    const srcDir = config._srcDir;
+    const assetsDir = path.join(srcDir, "assets");
     const replacements = config.web?.replaceLink ?? [];
     const map = [];
 
@@ -139,29 +139,33 @@ function buildTMHeader(metadata, config) {
 
 function buildWebOnefile(config) {
     const cwd = config._cwd;
-    const addonDir = config._addonDir;
+    const srcDir = config._srcDir;
     const metadata = config._metadata;
     const replacements = buildWebReplacementMap(config);
     const onefileCfg = config.web?.onefile;
+    const { shared, targetSpecific } = collectSourceFiles(srcDir, "web");
 
-    // CSS → CSS-in-JS
+    const allFiles = [...shared, ...targetSpecific];
+
     let cssBlock = "";
-    for (const f of findFiles(addonDir, [".css"])) {
-        let content = fs.readFileSync(f, "utf8");
-        content = applyReplacements(content, replacements);
-        content = minifyCSS(f, content);
-        cssBlock += cssToJS(content) + "\n";
-        log.file("minify", `${path.relative(addonDir, f)} → css-in-js`);
-    }
-
-    // JS
     let jsBlock = "";
-    for (const f of findFiles(addonDir, [".js"])) {
+
+    for (const f of allFiles) {
+        const ext = path.extname(f).toLowerCase();
+        if (ext !== ".css" && ext !== ".js") continue;
+
         let content = fs.readFileSync(f, "utf8");
         content = applyReplacements(content, replacements);
-        content = minifyJS(f, content);
-        jsBlock += content + "\n";
-        log.file("minify", path.relative(addonDir, f));
+
+        if (ext === ".css") {
+            content = minifyCSS(f, content);
+            cssBlock += cssToJS(content).trim();
+            log.file("minify", `${path.relative(srcDir, f)} → css-in-js`);
+        } else {
+            content = minifyJS(f, content);
+            jsBlock += content.trim();
+            log.file("minify", path.relative(srcDir, f));
+        }
     }
 
     const header = buildTMHeader(metadata, config);
