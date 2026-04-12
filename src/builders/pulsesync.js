@@ -65,6 +65,15 @@ function buildPulseSyncToDir(config, outDir, silent = false) {
         logWarn("metadata.json not found in src/");
     }
 
+    // LICENSE
+    const licenseSrc = path.join(config._cwd, "LICENSE");
+    if (fs.existsSync(licenseSrc)) {
+        fs.copyFileSync(licenseSrc, path.join(outDir, "LICENSE"));
+        logFile("copy", "LICENSE");
+    } else {
+        logWarn("LICENSE not found in project root");
+    }
+
     // assets/ → outDir/assets/  (без папки branding — она только для сборщика)
     copyAssetsToOut(srcDir, outDir, ignoreRules);
     const outBrandingPs = path.join(outDir, "assets", "branding");
