@@ -169,7 +169,105 @@ export function minifyJS(src, content) {
         loader: "js",
         format: "iife",
         minify: true,
+        target: "es2017",
     }).code;
+}
+
+export function minifyTS(src, content) {
+    const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
+    return getEsbuild().transformSync(code, {
+        loader: "ts",
+        format: "iife",
+        minify: true,
+        target: "es2017",
+    }).code;
+}
+
+/**
+ * Bundle a list of JS/TS files into a single minified IIFE string.
+ * Uses esbuild bundle mode — resolves all imports, deduplicates dependencies.
+ *
+ * @param {string[]} files        - ordered list of absolute paths (.js / .ts)
+ * @param {Array}    replacements - [{from, to}] applied before bundling
+ * @returns {string} bundled + minified JS
+ */
+export function bundleJS(files, replacements = []) {
+    if (files.length === 0) return "";
+
+    const esbuild = getEsbuild();
+
+    // Virtual entry point: import each file by absolute path in order.
+    // Absolute imports mean esbuild always resolves relative to the original
+    // file location — no temp dir needed, no path breakage.
+    const entryContents = files
+        .map((f) => `import ${JSON.stringify(f.replace(/\\/g, "/"))};`)
+        .join("\n");
+
+    // Apply replacements via a simple find-replace loader shim.
+    // Since buildSync doesn't support plugins, we pre-process files that need
+    // replacements and pass them as virtual modules via the `define`-less path:
+    // just read + patch inline and feed through stdin with absolute entry imports.
+    // For the common case (no replacements) this is zero overhead.
+
+    let patchedContents = entryContents;
+    if (replacements.length) {
+        // Patch each file's content and inline it by rewriting the entry to
+        // use a temp file that mirrors the original directory structure so that
+        // relative imports inside those files still resolve correctly.
+        const os = _require("os");
+        const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ymtm-"));
+        try {
+            const mappedFiles = files.map((f) => {
+                let src = fs.readFileSync(f, "utf8");
+                for (const { from, to } of replacements) {
+                    if (!from || !to) continue;
+                    src = src.split(from).join(to);
+                }
+                // Mirror the full absolute path under tmpRoot so relative
+                // imports like "../utils" resolve to the real neighbours.
+                const mirrored = path.join(tmpRoot, f);
+                fs.mkdirSync(path.dirname(mirrored), { recursive: true });
+                fs.writeFileSync(mirrored, src, "utf8");
+                return mirrored;
+            });
+
+            const mirroredEntry = mappedFiles
+                .map((f) => `import ${JSON.stringify(f.replace(/\\/g, "/"))};`)
+                .join("\n");
+
+            const result = esbuild.buildSync({
+                stdin: {
+                    contents: mirroredEntry,
+                    resolveDir: tmpRoot,
+                    loader: "js",
+                },
+                bundle: true,
+                format: "iife",
+                minify: true,
+                target: "es2017",
+                write: false,
+            });
+
+            return result.outputFiles[0].text;
+        } finally {
+            fs.rmSync(tmpRoot, { recursive: true, force: true });
+        }
+    }
+
+    const result = esbuild.buildSync({
+        stdin: {
+            contents: entryContents,
+            resolveDir: path.dirname(files[0]),
+            loader: "js",
+        },
+        bundle: true,
+        format: "iife",
+        minify: true,
+        target: "es2017",
+        write: false,
+    });
+
+    return result.outputFiles[0].text;
 }
 
 export function minifyHTML(src, content) {

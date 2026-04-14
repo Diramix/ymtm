@@ -6,7 +6,7 @@ import {
     findFiles,
     resolveArtifactName,
     fileSize,
-    minifyJS,
+    bundleJS,
     minifyCSS,
 } from "../utils.js";
 import { collectSourceFiles } from "../src-resolver.js";
@@ -148,25 +148,30 @@ function buildWebOnefile(config) {
     const allFiles = [...shared, ...targetSpecific];
 
     let cssBlock = "";
-    let jsBlock = "";
+
+    const jsFiles = [];
+    const cssFiles = [];
 
     for (const f of allFiles) {
         const ext = path.extname(f).toLowerCase();
-        if (ext !== ".css" && ext !== ".js") continue;
-
-        let content = fs.readFileSync(f, "utf8");
-        content = applyReplacements(content, replacements);
-
-        if (ext === ".css") {
-            content = minifyCSS(f, content);
-            cssBlock += cssToJS(content).trim();
-            log.file("minify", `${path.relative(srcDir, f)} → css-in-js`);
-        } else {
-            content = minifyJS(f, content);
-            jsBlock += content.trim();
+        if (ext === ".js" || ext === ".ts") {
+            jsFiles.push(f);
             log.file("minify", path.relative(srcDir, f));
+        } else if (ext === ".css") {
+            cssFiles.push(f);
         }
     }
+
+    for (const f of cssFiles) {
+        let content = fs.readFileSync(f, "utf8");
+        content = applyReplacements(content, replacements);
+        content = minifyCSS(f, content);
+        cssBlock += cssToJS(content).trim();
+        log.file("minify", `${path.relative(srcDir, f)} → css-in-js`);
+    }
+
+    const jsBlock =
+        jsFiles.length > 0 ? bundleJS(jsFiles, replacements).trim() : "";
 
     const header = buildTMHeader(metadata, config);
     const body = `${cssBlock}${jsBlock}`.trim();

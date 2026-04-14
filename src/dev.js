@@ -1,46 +1,96 @@
 import fs from "fs";
 import path from "path";
-import readline from "readline";
 import * as log from "./logger.js";
 import { loadConfig } from "./config.js";
 import { buildDevTarget } from "./builder.js";
 
-// ── Interactive prompt ────────────────────────────────────────────────────────
+// Display names
+const TARGET_DISPLAY = {
+    nextmusic: "Next Music",
+    pulsesync: "PulseSync",
+};
+
+function displayName(target) {
+    return TARGET_DISPLAY[target] ?? target;
+}
+
+// Interactive arrow-key prompt
+const RESET = "\x1b[0m";
+const BOLD = "\x1b[1m";
+const CYAN = "\x1b[36m";
+const GRAY = "\x1b[90m";
+const CLEAR_LINE = "\x1b[2K\x1b[1G";
 
 function prompt(question, choices) {
     return new Promise((resolve) => {
-        const rl = readline.createInterface({
-            input: process.stdin,
-            output: process.stdout,
-        });
+        let selected = 0;
+        let drawn = false;
 
-        const choiceList = choices.map((c, i) => `  ${i + 1}) ${c}`).join("\n");
-        process.stdout.write(`\n${question}\n${choiceList}\n\n> `);
+        function render() {
+            if (drawn) {
+                process.stdout.write(`\x1b[${choices.length}A`);
+            }
+            drawn = true;
 
-        rl.on("line", (line) => {
-            rl.close();
-            const trimmed = line.trim();
-            const idx = parseInt(trimmed, 10) - 1;
-            if (idx >= 0 && idx < choices.length) {
-                resolve(choices[idx]);
-            } else {
-                const match = choices.find(
-                    (c) => c.toLowerCase() === trimmed.toLowerCase(),
-                );
-                if (match) resolve(match);
-                else {
-                    log.error(
-                        `Invalid choice: "${trimmed}". Please enter a number or name.`,
+            for (let i = 0; i < choices.length; i++) {
+                const label = displayName(choices[i]);
+                if (i === selected) {
+                    process.stdout.write(
+                        `${CLEAR_LINE}  ${CYAN}> ${label}${RESET}\n`,
                     );
-                    process.exit(1);
+                } else {
+                    process.stdout.write(`${CLEAR_LINE}    ${label}\n`);
                 }
             }
-        });
+        }
+
+        process.stdout.write(`\n  ${question}\n\n`);
+        render();
+
+        const stdin = process.stdin;
+        stdin.setRawMode(true);
+        stdin.resume();
+        stdin.setEncoding("utf8");
+
+        function cleanup() {
+            stdin.setRawMode(false);
+            stdin.pause();
+            stdin.removeListener("data", onData);
+        }
+
+        function onData(key) {
+            // Ctrl+C
+            if (key === "\u0003") {
+                cleanup();
+                process.stdout.write("\n");
+                process.exit(0);
+            }
+            // Enter
+            if (key === "\r" || key === "\n") {
+                cleanup();
+                process.stdout.write("\n");
+                resolve(choices[selected]);
+                return;
+            }
+            // Up arrow
+            if (key === "\x1b[A") {
+                selected = (selected - 1 + choices.length) % choices.length;
+                render();
+                return;
+            }
+            // Down arrow
+            if (key === "\x1b[B") {
+                selected = (selected + 1) % choices.length;
+                render();
+                return;
+            }
+        }
+
+        stdin.on("data", onData);
     });
 }
 
-// ── Silent build wrapper ──────────────────────────────────────────────────────
-
+// Silent build wrapper
 function buildSilent(config, target) {
     process.stdout.write("  compiling...");
     const start = Date.now();
@@ -54,9 +104,7 @@ function buildSilent(config, target) {
     }
 }
 
-// ── File watcher ──────────────────────────────────────────────────────────────
-
-// Папки, специфичные для каждого таргета. Изменения в чужой папке — игнор.
+// File watcher
 const TARGET_DIRS = { pulsesync: "ps", nextmusic: "nm" };
 
 let _rebuildTimer = null;
@@ -111,8 +159,7 @@ function watchDirFallback(dir, config, target) {
     }
 }
 
-// ── Entry point ───────────────────────────────────────────────────────────────
-
+// Entry point
 export async function runDev(cliTarget) {
     let config;
     try {
@@ -150,7 +197,9 @@ export async function runDev(cliTarget) {
     }
 
     log.header("ymtm", config._version);
-    process.stdout.write(`  target  ${target}  •  ${config.addonName}\n\n`);
+    process.stdout.write(
+        `  target  ${displayName(target)}  •  ${config.addonName}\n\n`,
+    );
 
     // Initial build
     buildSilent(config, target);

@@ -22,7 +22,7 @@ import {
     copyRecursive,
     shouldIgnore,
     IMAGE_EXTS,
-    minifyJS,
+    bundleJS,
     minifyCSS,
     applyReplacements,
 } from "./utils.js";
@@ -221,7 +221,7 @@ export function bundleToDir(
 ) {
     const { js: jsName, css: cssName } = getBundleNames(metadata);
 
-    const jsChunks = [];
+    const jsFiles = [];
     const cssChunks = [];
 
     for (const srcFile of allFiles) {
@@ -234,10 +234,8 @@ export function bundleToDir(
         if (srcFile.replace(/\\/g, "/").split("/").includes("assets")) continue;
         if (base === "icon" && IMAGE_EXTS.includes(ext)) continue;
 
-        if (ext === ".js") {
-            let content = fs.readFileSync(srcFile, "utf8");
-            content = applyReplacements(content, replacements);
-            jsChunks.push(minifyJS(srcFile, content).trim());
+        if (ext === ".js" || ext === ".ts") {
+            jsFiles.push(srcFile);
             logFile("minify", path.relative(srcDir, srcFile) + " → " + jsName);
         } else if (ext === ".css") {
             let content = fs.readFileSync(srcFile, "utf8");
@@ -259,9 +257,10 @@ export function bundleToDir(
         }
     }
 
-    if (jsChunks.length > 0) {
+    if (jsFiles.length > 0) {
         ensureDir(outDir);
-        fs.writeFileSync(path.join(outDir, jsName), jsChunks.join(""), "utf8");
+        const bundled = bundleJS(jsFiles, replacements);
+        fs.writeFileSync(path.join(outDir, jsName), bundled, "utf8");
         logFile("write", jsName);
     }
 

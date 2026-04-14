@@ -80,13 +80,42 @@ export function init(cwd = process.cwd()) {
         log.file("write", "src/style.css");
     }
 
-    // src/script.js
+    // tsconfig.json — для IDE-поддержки (сборка идёт через esbuild, не tsc)
+    const tsconfigPath = path.join(cwd, "tsconfig.json");
+    if (!fs.existsSync(tsconfigPath)) {
+        const tsconfig = {
+            compilerOptions: {
+                target: "ES2017",
+                lib: ["ES2017", "DOM"],
+                module: "ESNext",
+                moduleResolution: "bundler",
+                strict: true,
+                noEmit: true,
+                allowJs: true,
+                skipLibCheck: true,
+            },
+            include: ["src/**/*"],
+        };
+        fs.writeFileSync(
+            tsconfigPath,
+            JSON.stringify(tsconfig, null, 2),
+            "utf8",
+        );
+        log.file("write", "tsconfig.json");
+    }
+
+    // src/script.ts — TypeScript entry point
+    const tsPath = path.join(srcDir, "script.ts");
     const jsPath = path.join(srcDir, "script.js");
-    if (!fs.existsSync(jsPath)) {
+    if (!fs.existsSync(tsPath) && !fs.existsSync(jsPath)) {
+        fs.writeFileSync(tsPath, "// shared script\n", "utf8");
+        log.file("write", "src/script.ts");
+    } else if (!fs.existsSync(jsPath)) {
+        // tsPath already exists, skip
+    } else {
         fs.writeFileSync(jsPath, "// shared script\n", "utf8");
         log.file("write", "src/script.js");
     }
-
     // src/assets/  (placeholder)
     const assetsDir = path.join(srcDir, "assets");
     fs.mkdirSync(assetsDir, { recursive: true });
