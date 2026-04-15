@@ -15,17 +15,18 @@ import {
     copyAssetsToOut,
     bundleToDir,
 } from "../src-resolver.js";
+import type { Config } from "../types.js";
 
 // ── Shared core ───────────────────────────────────────────────────────────────
 
-function buildPulseSyncToDir(config, outDir, silent = false) {
+function buildPulseSyncToDir(config: Config, outDir: string, silent = false): void {
     const srcDir = config._srcDir;
     const metadata = config._metadata;
     const replacements = config.web?.replaceLink ?? [];
     const ignoreRules = parseBuildIgnore(config._buildIgnore);
     const noop = () => {};
-    const logFile = silent ? noop : (a, n) => log.file(a, n);
-    const logWarn = silent ? noop : log.warn;
+    const logFile: (action: string, name: string) => void = silent ? noop : (a, n) => log.file(a, n);
+    const logWarn: (msg: string) => void = silent ? noop : log.warn;
 
     const { shared, targetSpecific, assets } = collectSourceFiles(
         srcDir,
@@ -36,7 +37,6 @@ function buildPulseSyncToDir(config, outDir, silent = false) {
 
     ensureDir(outDir);
 
-    // icon.<ext> и banner.<ext> — ищем сначала в assets/branding/, потом в корне src/
     const brandingDir = path.join(srcDir, "assets", "branding");
     const iconFile =
         findImageFile(brandingDir, "icon") ?? findImageFile(srcDir, "icon");
@@ -74,7 +74,6 @@ function buildPulseSyncToDir(config, outDir, silent = false) {
         logWarn("LICENSE not found in project root");
     }
 
-    // assets/ → outDir/assets/  (без папки branding — она только для сборщика)
     copyAssetsToOut(srcDir, outDir, ignoreRules);
     const outBrandingPs = path.join(outDir, "assets", "branding");
     if (fs.existsSync(outBrandingPs))
@@ -95,7 +94,7 @@ function buildPulseSyncToDir(config, outDir, silent = false) {
 
 // ── Production build ──────────────────────────────────────────────────────────
 
-export function buildPulseSync(config) {
+export function buildPulseSync(config: Config): void {
     const cwd = config._cwd;
     const name = config.addonName;
     const version = config.version;
@@ -108,7 +107,7 @@ export function buildPulseSync(config) {
 
     buildPulseSyncToDir(config, outDir, false);
 
-    const artifacts = [];
+    const artifacts: string[] = [];
     const ignoreRules = parseBuildIgnore(config._buildIgnore);
 
     const zipConfig = config.pulsesync?.zip;
@@ -148,7 +147,7 @@ export function buildPulseSync(config) {
 
 // ── Dev build ─────────────────────────────────────────────────────────────────
 
-export function buildPulseSyncDev(config) {
+export function buildPulseSyncDev(config: Config): void {
     const outDir = path.join(config._cwd, "dev", config.addonName);
     if (fs.existsSync(outDir))
         fs.rmSync(outDir, { recursive: true, force: true });

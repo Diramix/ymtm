@@ -45,7 +45,7 @@ const DEFAULT_PKG = {
     },
 };
 
-export function init(cwd = process.cwd()) {
+export function init(cwd = process.cwd()): void {
     log.task("init");
 
     // package.json
@@ -116,27 +116,28 @@ export function init(cwd = process.cwd()) {
         fs.writeFileSync(jsPath, "// shared script\n", "utf8");
         log.file("write", "src/script.js");
     }
-    // src/assets/  (placeholder)
+
+    // src/assets/
     const assetsDir = path.join(srcDir, "assets");
     fs.mkdirSync(assetsDir, { recursive: true });
     log.file("write", "src/assets/");
 
-    // src/assets/branding/  — иконка и баннер аддона
+    // src/assets/branding/
     const brandingDir = path.join(assetsDir, "branding");
     fs.mkdirSync(brandingDir, { recursive: true });
     log.file("write", "src/assets/branding/");
 
-    // src/ps/  — PulseSync-specific
+    // src/ps/
     const psDir = path.join(srcDir, "ps");
     fs.mkdirSync(psDir, { recursive: true });
     log.file("write", "src/ps/");
 
-    // src/nm/  — NextMusic-specific
+    // src/nm/
     const nmDir = path.join(srcDir, "nm");
     fs.mkdirSync(nmDir, { recursive: true });
     log.file("write", "src/nm/");
 
-    // src/web/  — Web-specific
+    // src/web/
     const webDir = path.join(srcDir, "web");
     fs.mkdirSync(webDir, { recursive: true });
     log.file("write", "src/web/");

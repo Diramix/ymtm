@@ -6,24 +6,23 @@ import * as log from "./logger.js";
 import { createRequire } from "module";
 
 const _require = createRequire(import.meta.url);
-const { version } = _require("../package.json");
+const { version } = _require("../package.json") as { version: string };
 
-export function run(args) {
+export function run(args: string[]): void {
     const [command, ...rest] = args;
 
     if (command === "init") {
         try {
             init(process.cwd());
         } catch (e) {
-            log.error(`Init failed: ${e.message}`);
+            log.error(`Init failed: ${(e as Error).message}`);
             process.exit(1);
         }
         return;
     }
 
     if (command === "dev") {
-        // runDev() is async (interactive prompt)
-        runDev().catch((e) => {
+        runDev(rest[0]).catch((e: Error) => {
             log.error(`Dev failed: ${e.message}`);
             if (process.env.DEBUG) console.error(e.stack);
             process.exit(1);
@@ -38,7 +37,7 @@ export function run(args) {
         try {
             config = loadConfig();
         } catch (e) {
-            log.error(`Failed to load config: ${e.message}`);
+            log.error(`Failed to load config: ${(e as Error).message}`);
             process.exit(1);
         }
 
@@ -49,8 +48,8 @@ export function run(args) {
                 for (const pkg of rest) buildPackage(config, pkg);
             }
         } catch (e) {
-            log.error(`Build failed: ${e.message}`);
-            if (process.env.DEBUG) console.error(e.stack);
+            log.error(`Build failed: ${(e as Error).message}`);
+            if (process.env.DEBUG) console.error((e as Error).stack);
             process.exit(1);
         }
         return;

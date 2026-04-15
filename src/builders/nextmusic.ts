@@ -15,17 +15,18 @@ import {
     copyAssetsToOut,
     bundleToDir,
 } from "../src-resolver.js";
+import type { Config } from "../types.js";
 
 // ── Shared core ───────────────────────────────────────────────────────────────
 
-function buildNextMusicToDir(config, outDir, silent = false) {
+function buildNextMusicToDir(config: Config, outDir: string, silent = false): void {
     const srcDir = config._srcDir;
     const metadata = config._metadata;
     const replacements = config.web?.replaceLink ?? [];
     const ignoreRules = parseBuildIgnore(config._buildIgnore);
     const noop = () => {};
-    const logFile = silent ? noop : (a, n) => log.file(a, n);
-    const logWarn = silent ? noop : log.warn;
+    const logFile: (action: string, name: string) => void = silent ? noop : (a, n) => log.file(a, n);
+    const logWarn: (msg: string) => void = silent ? noop : log.warn;
 
     const { shared, targetSpecific, assets } = collectSourceFiles(
         srcDir,
@@ -36,7 +37,6 @@ function buildNextMusicToDir(config, outDir, silent = false) {
 
     ensureDir(outDir);
 
-    // icon.<ext> — ищем сначала в assets/branding/, потом в корне src/
     const brandingDir = path.join(srcDir, "assets", "branding");
     const iconFile =
         findImageFile(brandingDir, "icon") ?? findImageFile(srcDir, "icon");
@@ -48,7 +48,6 @@ function buildNextMusicToDir(config, outDir, silent = false) {
         logWarn("No icon image found in assets/branding/ or src/");
     }
 
-    // banner.<ext> — ищем сначала в assets/branding/, потом в корне src/
     const bannerFile =
         findImageFile(brandingDir, "banner") ?? findImageFile(srcDir, "banner");
     if (bannerFile) {
@@ -57,7 +56,6 @@ function buildNextMusicToDir(config, outDir, silent = false) {
         logFile("copy", `banner${ext}`);
     }
 
-    // assets/ → outDir/assets/  (без папки branding — она только для сборщика)
     copyAssetsToOut(srcDir, outDir, ignoreRules);
     const outBrandingNm = path.join(outDir, "assets", "branding");
     if (fs.existsSync(outBrandingNm))
@@ -78,7 +76,7 @@ function buildNextMusicToDir(config, outDir, silent = false) {
 
 // ── Production build ──────────────────────────────────────────────────────────
 
-export function buildNextMusic(config) {
+export function buildNextMusic(config: Config): void {
     const cwd = config._cwd;
     const name = config.addonName;
     const version = config.version;
@@ -111,7 +109,7 @@ export function buildNextMusic(config) {
 
 // ── Dev build ─────────────────────────────────────────────────────────────────
 
-export function buildNextMusicDev(config) {
+export function buildNextMusicDev(config: Config): void {
     const outDir = path.join(config._cwd, "dev", config.addonName);
     if (fs.existsSync(outDir))
         fs.rmSync(outDir, { recursive: true, force: true });

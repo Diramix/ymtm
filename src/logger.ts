@@ -1,70 +1,70 @@
 // Electron-builder style logger
-import os from 'os';
+import os from "os";
 
-const RESET  = '\x1b[0m';
-const BOLD   = '\x1b[1m';
-const CYAN   = '\x1b[36m';
-const GREEN  = '\x1b[32m';
-const YELLOW = '\x1b[33m';
-const RED    = '\x1b[31m';
-const BLUE   = '\x1b[34m';
-const GRAY   = '\x1b[90m';
+const RESET = "\x1b[0m";
+const BOLD = "\x1b[1m";
+const CYAN = "\x1b[36m";
+const GREEN = "\x1b[32m";
+const YELLOW = "\x1b[33m";
+const RED = "\x1b[31m";
+const BLUE = "\x1b[34m";
+const GRAY = "\x1b[90m";
 
-export function info(msg, data) {
+export function info(msg: string, data?: Record<string, unknown> | string): void {
     const line = `  ${GREEN}•${RESET} ${BOLD}${msg}${RESET}`;
     if (data !== undefined) {
         const pairs =
-            typeof data === 'object'
+            typeof data === "object"
                 ? Object.entries(data)
                       .map(([k, v]) => `${CYAN}${k}${RESET}=${GRAY}${v}${RESET}`)
-                      .join('  ')
+                      .join("  ")
                 : GRAY + data + RESET;
-        process.stdout.write(line + '  ' + pairs + os.EOL);
+        process.stdout.write(line + "  " + pairs + os.EOL);
     } else {
         process.stdout.write(line + os.EOL);
     }
 }
 
-export function step(msg) {
+export function step(msg: string): void {
     process.stdout.write(`${GRAY}  │${RESET}  ${msg}${os.EOL}`);
 }
 
-export function header(pkg, version) {
-    const line = `${BOLD}${BLUE}ymtm${RESET} ${GRAY}v${version || '1.0.0'}${RESET}`;
+export function header(pkg: string, version?: string): void {
+    const line = `${BOLD}${BLUE}ymtm${RESET} ${GRAY}v${version || "1.0.0"}${RESET}`;
     process.stdout.write(os.EOL + line + os.EOL);
 }
 
-export function task(name) {
+export function task(name: string): void {
     process.stdout.write(
         `${os.EOL}${GRAY}  ┌─${RESET} ${BOLD}${CYAN}${name}${RESET}${os.EOL}`,
     );
 }
 
-export function done(name, files) {
-    const fileStr = files ? ` ${GRAY}(${files})${RESET}` : '';
+export function done(name: string, files?: string): void {
+    const fileStr = files ? ` ${GRAY}(${files})${RESET}` : "";
     process.stdout.write(
         `${GRAY}  └─${RESET} ${GREEN}${BOLD}done${RESET}${fileStr}${os.EOL}`,
     );
 }
 
-export function artifact(file, size) {
-    const sizeStr = size ? ` ${GRAY}${size}${RESET}` : '';
+export function artifact(file: string, size?: string): void {
+    const sizeStr = size ? ` ${GRAY}${size}${RESET}` : "";
     process.stdout.write(
         `${GRAY}  │${RESET}  ${GREEN}✔${RESET} ${BOLD}${file}${RESET}${sizeStr}${os.EOL}`,
     );
 }
 
-export function warn(msg) {
+export function warn(msg: string): void {
     process.stdout.write(`${YELLOW}  ⨯  ${msg}${RESET}${os.EOL}`);
 }
 
-export function error(msg) {
+export function error(msg: string): void {
     process.stderr.write(`${RED}  ⨯  ${msg}${RESET}${os.EOL}`);
 }
 
-export function file(action, name) {
-    const icons = { minify: '~', copy: '•', write: '•', skip: '»' };
-    const icon = icons[action] || '⤷';
+export function file(action: string, name: string): void {
+    const icons: Record<string, string> = { minify: "~", copy: "•", write: "•", skip: "»" };
+    const icon = icons[action] || "⤷";
     process.stdout.write(
         `${GRAY}  │${RESET}     ${GRAY}${icon}${RESET} ${name}${os.EOL}`,
     );

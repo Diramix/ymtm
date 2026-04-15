@@ -3,14 +3,15 @@ import path from "path";
 import * as log from "./logger.js";
 import { loadConfig } from "./config.js";
 import { buildDevTarget } from "./builder.js";
+import type { Config } from "./types.js";
 
 // Display names
-const TARGET_DISPLAY = {
+const TARGET_DISPLAY: Record<string, string> = {
     nextmusic: "Next Music",
     pulsesync: "PulseSync",
 };
 
-function displayName(target) {
+function displayName(target: string): string {
     return TARGET_DISPLAY[target] ?? target;
 }
 
@@ -18,15 +19,14 @@ function displayName(target) {
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 const CYAN = "\x1b[36m";
-const GRAY = "\x1b[90m";
 const CLEAR_LINE = "\x1b[2K\x1b[1G";
 
-function prompt(question, choices) {
+function prompt(question: string, choices: string[]): Promise<string> {
     return new Promise((resolve) => {
         let selected = 0;
         let drawn = false;
 
-        function render() {
+        function render(): void {
             if (drawn) {
                 process.stdout.write(`\x1b[${choices.length}A`);
             }
@@ -52,13 +52,13 @@ function prompt(question, choices) {
         stdin.resume();
         stdin.setEncoding("utf8");
 
-        function cleanup() {
+        function cleanup(): void {
             stdin.setRawMode(false);
             stdin.pause();
             stdin.removeListener("data", onData);
         }
 
-        function onData(key) {
+        function onData(key: string): void {
             // Ctrl+C
             if (key === "\u0003") {
                 cleanup();
@@ -91,7 +91,7 @@ function prompt(question, choices) {
 }
 
 // Silent build wrapper
-function buildSilent(config, target) {
+function buildSilent(config: Config, target: string): void {
     process.stdout.write("  compiling...");
     const start = Date.now();
     try {
@@ -100,22 +100,21 @@ function buildSilent(config, target) {
         process.stdout.write(`\r  compiled in ${elapsed}s    \n`);
     } catch (e) {
         process.stdout.write("\r  failed           \n");
-        log.error(`Build failed: ${e.message}`);
+        log.error(`Build failed: ${(e as Error).message}`);
     }
 }
 
 // File watcher
-const TARGET_DIRS = { pulsesync: "ps", nextmusic: "nm" };
+const TARGET_DIRS: Record<string, string> = { pulsesync: "ps", nextmusic: "nm" };
 
-let _rebuildTimer = null;
+let _rebuildTimer: ReturnType<typeof setTimeout> | null = null;
 let _isBuilding = false;
 
-function isChangeRelevant(filename, target) {
+function isChangeRelevant(filename: string | null, target: string): boolean {
     if (!filename) return false;
     const normalised = filename.replace(/\\/g, "/");
     for (const [t, dir] of Object.entries(TARGET_DIRS)) {
         if (t === target) continue;
-        // изменение лежит внутри папки другого таргета — пропускаем
         if (
             normalised === dir ||
             normalised.startsWith(dir + "/") ||
@@ -126,7 +125,7 @@ function isChangeRelevant(filename, target) {
     return true;
 }
 
-function scheduleRebuild(config, target, filename) {
+function scheduleRebuild(config: Config, target: string, filename: string | null): void {
     if (!isChangeRelevant(filename, target)) return;
     if (_rebuildTimer) clearTimeout(_rebuildTimer);
     _rebuildTimer = setTimeout(() => {
@@ -137,7 +136,7 @@ function scheduleRebuild(config, target, filename) {
     }, 150);
 }
 
-function watchDir(watchPath, config, target) {
+function watchDir(watchPath: string, config: Config, target: string): void {
     if (!fs.existsSync(watchPath)) return;
     try {
         fs.watch(watchPath, { recursive: true }, (_event, filename) => {
@@ -148,7 +147,7 @@ function watchDir(watchPath, config, target) {
     }
 }
 
-function watchDirFallback(dir, config, target) {
+function watchDirFallback(dir: string, config: Config, target: string): void {
     if (!fs.existsSync(dir)) return;
     if (fs.statSync(dir).isDirectory()) {
         fs.watch(dir, (_event, filename) => {
@@ -160,12 +159,12 @@ function watchDirFallback(dir, config, target) {
 }
 
 // Entry point
-export async function runDev(cliTarget) {
-    let config;
+export async function runDev(cliTarget?: string): Promise<void> {
+    let config: Config;
     try {
         config = loadConfig();
     } catch (e) {
-        log.error(`Failed to load config: ${e.message}`);
+        log.error(`Failed to load config: ${(e as Error).message}`);
         process.exit(1);
     }
 
@@ -179,7 +178,7 @@ export async function runDev(cliTarget) {
         process.exit(1);
     }
 
-    let target;
+    let target: string;
 
     if (cliTarget) {
         const key = cliTarget.toLowerCase();
@@ -201,10 +200,8 @@ export async function runDev(cliTarget) {
         `  target  ${displayName(target)}  •  ${config.addonName}\n\n`,
     );
 
-    // Initial build
     buildSilent(config, target);
 
-    // Watch
     const watchPath = config._srcDir;
     if (!fs.existsSync(watchPath)) {
         log.warn(`Source directory not found: ${watchPath}`);
@@ -212,7 +209,6 @@ export async function runDev(cliTarget) {
         watchDir(watchPath, config, target);
     }
 
-    // Keep alive
     process.stdin.resume();
     process.on("SIGINT", () => {
         process.stdout.write("\n");

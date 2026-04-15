@@ -2,13 +2,16 @@ import fs from "fs";
 import path from "path";
 import zlib from "zlib";
 import { createRequire } from "module";
+import type { ArchiveEntry, TarEntry, ZipFileEntry, Replacement } from "./types.js";
 
 // ── esbuild (lazy-loaded) ─────────────────────────────────────────────────────
 
 const _require = createRequire(import.meta.url);
-let _esbuild = null;
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+let _esbuild: any = null;
 
-function getEsbuild() {
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function getEsbuild(): any {
     if (!_esbuild) {
         try {
             _esbuild = _require("esbuild");
@@ -32,7 +35,7 @@ function getEsbuild() {
  *   - пути с /           (src/dev/, src/dev/file.js)
  *   - glob-паттерны *    (*.test.js, dev_*)
  */
-export function parseBuildIgnore(raw = "") {
+export function parseBuildIgnore(raw = ""): string[] {
     return raw
         .split(/\r?\n/)
         .map((l) => l.trim())
@@ -41,10 +44,8 @@ export function parseBuildIgnore(raw = "") {
 
 /**
  * Проверяет, нужно ли исключить файл/папку из сборки.
- * @param {string} diskPath  - абсолютный путь на диске
- * @param {string[]} rules   - результат parseBuildIgnore()
  */
-export function shouldIgnore(diskPath, rules) {
+export function shouldIgnore(diskPath: string, rules: string[]): boolean {
     if (!rules || rules.length === 0) return false;
 
     const normalised = diskPath.replace(/\\/g, "/");
@@ -86,7 +87,7 @@ export function shouldIgnore(diskPath, rules) {
 }
 
 /** Простейший minimatch для паттернов с * (без рекурсивных **) */
-function minimatch(str, pattern) {
+function minimatch(str: string, pattern: string): boolean {
     const re = new RegExp(
         "^" +
             pattern.replace(/[.+^${}()|[\]\\]/g, "\\$&").replace(/\*/g, ".*") +
@@ -95,11 +96,11 @@ function minimatch(str, pattern) {
     return re.test(str);
 }
 
-export function ensureDir(dir) {
+export function ensureDir(dir: string): void {
     fs.mkdirSync(dir, { recursive: true });
 }
 
-export function copyRecursive(src, dest, ignoreRules = []) {
+export function copyRecursive(src: string, dest: string, ignoreRules: string[] = []): void {
     if (!fs.existsSync(src)) return;
     if (shouldIgnore(src, ignoreRules)) return;
     const stat = fs.statSync(src);
@@ -117,8 +118,8 @@ export function copyRecursive(src, dest, ignoreRules = []) {
     }
 }
 
-export function findFiles(dir, exts) {
-    const results = [];
+export function findFiles(dir: string, exts: string[]): string[] {
+    const results: string[] = [];
     if (!fs.existsSync(dir)) return results;
     for (const entry of fs.readdirSync(dir)) {
         const full = path.join(dir, entry);
@@ -144,7 +145,7 @@ export const IMAGE_EXTS = [
     ".tiff",
 ];
 
-export function findImageFile(dir, baseName) {
+export function findImageFile(dir: string, baseName: string): string | null {
     if (!fs.existsSync(dir)) return null;
     for (const entry of fs.readdirSync(dir)) {
         const ext = path.extname(entry).toLowerCase();
@@ -157,64 +158,48 @@ export function findImageFile(dir, baseName) {
 
 // ── Minification ──────────────────────────────────────────────────────────────
 
-export function minifyCSS(src, content) {
+export function minifyCSS(src: string, content?: string): string {
     const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
     return getEsbuild().transformSync(code, { loader: "css", minify: true })
-        .code;
+        .code as string;
 }
 
-export function minifyJS(src, content) {
+export function minifyJS(src: string, content?: string): string {
     const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
     return getEsbuild().transformSync(code, {
         loader: "js",
         format: "iife",
         minify: true,
         target: "es2017",
-    }).code;
+    }).code as string;
 }
 
-export function minifyTS(src, content) {
+export function minifyTS(src: string, content?: string): string {
     const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
     return getEsbuild().transformSync(code, {
         loader: "ts",
         format: "iife",
         minify: true,
         target: "es2017",
-    }).code;
+    }).code as string;
 }
 
 /**
  * Bundle a list of JS/TS files into a single minified IIFE string.
  * Uses esbuild bundle mode — resolves all imports, deduplicates dependencies.
- *
- * @param {string[]} files        - ordered list of absolute paths (.js / .ts)
- * @param {Array}    replacements - [{from, to}] applied before bundling
- * @returns {string} bundled + minified JS
  */
-export function bundleJS(files, replacements = []) {
+export function bundleJS(files: string[], replacements: Replacement[] = []): string {
     if (files.length === 0) return "";
 
     const esbuild = getEsbuild();
 
-    // Virtual entry point: import each file by absolute path in order.
-    // Absolute imports mean esbuild always resolves relative to the original
-    // file location — no temp dir needed, no path breakage.
     const entryContents = files
         .map((f) => `import ${JSON.stringify(f.replace(/\\/g, "/"))};`)
         .join("\n");
 
-    // Apply replacements via a simple find-replace loader shim.
-    // Since buildSync doesn't support plugins, we pre-process files that need
-    // replacements and pass them as virtual modules via the `define`-less path:
-    // just read + patch inline and feed through stdin with absolute entry imports.
-    // For the common case (no replacements) this is zero overhead.
-
     let patchedContents = entryContents;
     if (replacements.length) {
-        // Patch each file's content and inline it by rewriting the entry to
-        // use a temp file that mirrors the original directory structure so that
-        // relative imports inside those files still resolve correctly.
-        const os = _require("os");
+        const os = _require("os") as typeof import("os");
         const tmpRoot = fs.mkdtempSync(path.join(os.tmpdir(), "ymtm-"));
         try {
             const mappedFiles = files.map((f) => {
@@ -223,8 +208,6 @@ export function bundleJS(files, replacements = []) {
                     if (!from || !to) continue;
                     src = src.split(from).join(to);
                 }
-                // Mirror the full absolute path under tmpRoot so relative
-                // imports like "../utils" resolve to the real neighbours.
                 const mirrored = path.join(tmpRoot, f);
                 fs.mkdirSync(path.dirname(mirrored), { recursive: true });
                 fs.writeFileSync(mirrored, src, "utf8");
@@ -248,11 +231,14 @@ export function bundleJS(files, replacements = []) {
                 write: false,
             });
 
-            return result.outputFiles[0].text;
+            return result.outputFiles[0].text as string;
         } finally {
             fs.rmSync(tmpRoot, { recursive: true, force: true });
         }
     }
+
+    // Suppress unused variable warning
+    void patchedContents;
 
     const result = esbuild.buildSync({
         stdin: {
@@ -267,10 +253,10 @@ export function bundleJS(files, replacements = []) {
         write: false,
     });
 
-    return result.outputFiles[0].text;
+    return result.outputFiles[0].text as string;
 }
 
-export function minifyHTML(src, content) {
+export function minifyHTML(src: string, content?: string): string {
     let code = content !== undefined ? content : fs.readFileSync(src, "utf8");
     code = code.replace(/<!--(?!\[if)[\s\S]*?-->/g, "");
     code = code.replace(/>\s+</g, "><");
@@ -278,7 +264,7 @@ export function minifyHTML(src, content) {
     return code;
 }
 
-export function minifyAndWrite(srcFile, destFile, replacements = []) {
+export function minifyAndWrite(srcFile: string, destFile: string, replacements: Replacement[] = []): void {
     const ext = path.extname(srcFile).toLowerCase();
     let content = fs.readFileSync(srcFile, "utf8");
     content = applyReplacements(content, replacements);
@@ -291,7 +277,7 @@ export function minifyAndWrite(srcFile, destFile, replacements = []) {
 
 // ── Replacements ──────────────────────────────────────────────────────────────
 
-export function applyReplacements(content, replacements = []) {
+export function applyReplacements(content: string, replacements: Replacement[] = []): string {
     for (const { from, to } of replacements) {
         if (!from || !to) continue;
         const escaped = from.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
@@ -300,7 +286,7 @@ export function applyReplacements(content, replacements = []) {
     return content;
 }
 
-export function applyReplacementsToFile(file, replacements = []) {
+export function applyReplacementsToFile(file: string, replacements: Replacement[] = []): void {
     if (!replacements.length) return;
     let content = fs.readFileSync(file, "utf8");
     content = applyReplacements(content, replacements);
@@ -309,8 +295,7 @@ export function applyReplacementsToFile(file, replacements = []) {
 
 // ── TAR.GZ (pure Node.js) ─────────────────────────────────────────────────────
 
-function tarChecksum(block) {
-    // block is a 512-byte Buffer; checksum field (offset 148, 8 bytes) treated as spaces
+function tarChecksum(block: Buffer): number {
     let sum = 0;
     for (let i = 0; i < 512; i++) {
         sum += i >= 148 && i < 156 ? 32 : block[i];
@@ -318,14 +303,13 @@ function tarChecksum(block) {
     return sum;
 }
 
-function tarHeader(name, size, mtime, type /* '0' file | '5' dir */, mode) {
+function tarHeader(name: string, size: number, mtime: number, type: string, mode?: number): Buffer {
     const block = Buffer.alloc(512, 0);
-    const write = (offset, len, value, encoding = "ascii") => {
+    const write = (offset: number, len: number, value: string, encoding: BufferEncoding = "ascii") => {
         const b = Buffer.from(value, encoding);
         b.copy(block, offset, 0, Math.min(b.length, len));
     };
 
-    // name — up to 100 bytes; longer names go via GNU long-name extension (handled in collectTar)
     write(0, 100, name);
     write(
         100,
@@ -333,8 +317,8 @@ function tarHeader(name, size, mtime, type /* '0' file | '5' dir */, mode) {
         (mode || (type === "5" ? 0o755 : 0o644)).toString(8).padStart(7, "0") +
             "\0",
     );
-    write(108, 8, "0000000\0"); // uid
-    write(116, 8, "0000000\0"); // gid
+    write(108, 8, "0000000\0");
+    write(116, 8, "0000000\0");
     write(124, 12, size.toString(8).padStart(11, "0") + "\0");
     write(
         136,
@@ -343,23 +327,20 @@ function tarHeader(name, size, mtime, type /* '0' file | '5' dir */, mode) {
             .toString(8)
             .padStart(11, "0") + "\0",
     );
-    write(148, 8, "        "); // checksum placeholder
+    write(148, 8, "        ");
     block[156] = type.charCodeAt(0);
-    write(257, 6, "ustar\0"); // magic
-    write(263, 2, "00"); // version
+    write(257, 6, "ustar\0");
+    write(263, 2, "00");
 
     const sum = tarChecksum(block);
     write(148, 8, sum.toString(8).padStart(6, "0") + "\0 ");
     return block;
 }
 
-function gnuLongNameBlocks(name, type /* 'L' = path, 'K' = link */) {
-    // GNU extension: type 'L' entry carries the real filename as data
+function gnuLongNameBlocks(name: string, type: string): Buffer[] {
     const nameBytes = Buffer.from(name + "\0", "utf8");
     const header = tarHeader("././@LongLink", nameBytes.length, 0, type, 0);
-    // override type byte
     header[156] = type.charCodeAt(0);
-    // recompute checksum after override
     const sum = tarChecksum(header);
     Buffer.from(sum.toString(8).padStart(6, "0") + "\0 ", "ascii").copy(
         header,
@@ -373,11 +354,11 @@ function gnuLongNameBlocks(name, type /* 'L' = path, 'K' = link */) {
 }
 
 function collectTarEntries(
-    diskPath,
-    archiveName,
-    result = [],
-    ignoreRules = [],
-) {
+    diskPath: string,
+    archiveName: string,
+    result: TarEntry[] = [],
+    ignoreRules: string[] = [],
+): TarEntry[] {
     if (shouldIgnore(diskPath, ignoreRules)) return result;
     const stat = fs.statSync(diskPath);
     if (stat.isDirectory()) {
@@ -398,43 +379,39 @@ function collectTarEntries(
     return result;
 }
 
-export function createTarGz(outputPath, entries, ignoreRules = []) {
+export function createTarGz(outputPath: string, entries: ArchiveEntry[], ignoreRules: string[] = []): void {
     ensureDir(path.dirname(outputPath));
 
-    const tarEntries = [];
+    const tarEntries: TarEntry[] = [];
     for (const entry of entries)
         collectTarEntries(entry.disk, entry.archive, tarEntries, ignoreRules);
 
-    const chunks = [];
+    const chunks: Buffer[] = [];
 
     for (const entry of tarEntries) {
         const nameBytes = Buffer.from(entry.name, "utf8");
 
-        // GNU long-name extension if name > 99 bytes
         if (nameBytes.length > 99) {
             chunks.push(...gnuLongNameBlocks(entry.name, "L"));
         }
 
         if (entry.type === "5") {
-            // Directory entry — no data blocks
             const truncName =
                 entry.name.length > 99 ? entry.name.slice(-99) : entry.name;
             chunks.push(tarHeader(truncName, 0, entry.stat.mtimeMs, "5"));
         } else {
-            const data = fs.readFileSync(entry.disk);
+            const data = fs.readFileSync(entry.disk!);
             const truncName =
                 entry.name.length > 99 ? entry.name.slice(-99) : entry.name;
             chunks.push(
                 tarHeader(truncName, data.length, entry.stat.mtimeMs, "0"),
             );
-            // data padded to 512-byte boundary
             const padded = Buffer.alloc(Math.ceil(data.length / 512) * 512, 0);
             data.copy(padded);
             chunks.push(padded);
         }
     }
 
-    // Two 512-byte zero blocks — end-of-archive marker
     chunks.push(Buffer.alloc(1024, 0));
 
     const tar = Buffer.concat(chunks);
@@ -442,20 +419,20 @@ export function createTarGz(outputPath, entries, ignoreRules = []) {
     fs.writeFileSync(outputPath, gz);
 }
 
-// ── ZIP (pure Node.js) — used for .pext and other ZIP-native formats ──────────
+// ── ZIP (pure Node.js) ────────────────────────────────────────────────────────
 
-function uint16LE(n) {
+function uint16LE(n: number): Buffer {
     const b = Buffer.alloc(2);
     b.writeUInt16LE(n, 0);
     return b;
 }
-function uint32LE(n) {
+function uint32LE(n: number): Buffer {
     const b = Buffer.alloc(4);
     b.writeUInt32LE(n >>> 0, 0);
     return b;
 }
 
-function dosDateTime(date) {
+function dosDateTime(date: Date): { date: number; time: number } {
     const d = date || new Date();
     const dosDate =
         ((d.getFullYear() - 1980) << 9) |
@@ -468,26 +445,31 @@ function dosDateTime(date) {
     return { date: dosDate, time: dosTime };
 }
 
-function crc32(buf) {
-    const table =
-        crc32.table ||
-        (crc32.table = (() => {
-            const t = new Uint32Array(256);
-            for (let i = 0; i < 256; i++) {
-                let c = i;
-                for (let j = 0; j < 8; j++)
-                    c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
-                t[i] = c;
-            }
-            return t;
-        })());
+let _crc32Table: Uint32Array | null = null;
+
+function getCrc32Table(): Uint32Array {
+    if (!_crc32Table) {
+        const t = new Uint32Array(256);
+        for (let i = 0; i < 256; i++) {
+            let c = i;
+            for (let j = 0; j < 8; j++)
+                c = c & 1 ? 0xedb88320 ^ (c >>> 1) : c >>> 1;
+            t[i] = c;
+        }
+        _crc32Table = t;
+    }
+    return _crc32Table;
+}
+
+function crc32(buf: Buffer): number {
+    const table = getCrc32Table();
     let crc = 0xffffffff;
     for (let i = 0; i < buf.length; i++)
         crc = table[(crc ^ buf[i]) & 0xff] ^ (crc >>> 8);
     return (crc ^ 0xffffffff) >>> 0;
 }
 
-function collectZipFiles(diskPath, archiveName, result = [], ignoreRules = []) {
+function collectZipFiles(diskPath: string, archiveName: string, result: ZipFileEntry[] = [], ignoreRules: string[] = []): ZipFileEntry[] {
     if (shouldIgnore(diskPath, ignoreRules)) return result;
     const stat = fs.statSync(diskPath);
     if (stat.isDirectory()) {
@@ -508,15 +490,15 @@ function collectZipFiles(diskPath, archiveName, result = [], ignoreRules = []) {
     return result;
 }
 
-export function createZip(outputPath, entries, ignoreRules = []) {
+export function createZip(outputPath: string, entries: ArchiveEntry[], ignoreRules: string[] = []): void {
     ensureDir(path.dirname(outputPath));
 
-    const files = [];
+    const files: ZipFileEntry[] = [];
     for (const entry of entries)
         collectZipFiles(entry.disk, entry.archive, files, ignoreRules);
 
-    const chunks = [];
-    const centralDir = [];
+    const chunks: Buffer[] = [];
+    const centralDir: Buffer[] = [];
 
     for (const file of files) {
         const nameBytes = Buffer.from(file.name, "utf8");
@@ -524,26 +506,29 @@ export function createZip(outputPath, entries, ignoreRules = []) {
         const offset = chunks.reduce((s, c) => s + c.length, 0);
 
         const isDir = file.disk === null;
-        let raw, compressed, finalCrc, finalUncompressed;
+        let raw: Buffer | undefined;
+        let compressed: Buffer;
+        let finalCrc: number;
+        let finalUncompressed: number;
 
         if (isDir) {
             compressed = Buffer.alloc(0);
             finalCrc = 0;
             finalUncompressed = 0;
         } else {
-            raw = fs.readFileSync(file.disk);
+            raw = fs.readFileSync(file.disk!);
             finalUncompressed = raw.length;
             finalCrc = crc32(raw);
             compressed = zlib.deflateRawSync(raw, { level: 9 });
         }
 
-        const useDeflate = !isDir && compressed.length < raw.length;
+        const useDeflate = !isDir && compressed.length < raw!.length;
         const finalMethod = isDir ? 0 : useDeflate ? 8 : 0;
         const finalData = isDir
             ? Buffer.alloc(0)
             : useDeflate
               ? compressed
-              : raw;
+              : raw!;
 
         const localHeader = Buffer.concat([
             Buffer.from([0x50, 0x4b, 0x03, 0x04]),
@@ -609,9 +594,9 @@ export function createZip(outputPath, entries, ignoreRules = []) {
 
 // ── Artifact name resolver ────────────────────────────────────────────────────
 
-const PKG_SHORT = { nextmusic: "nm", pulsesync: "ps", web: "web" };
+const PKG_SHORT: Record<string, string> = { nextmusic: "nm", pulsesync: "ps", web: "web" };
 
-export function resolveArtifactName(template, config, pkg) {
+export function resolveArtifactName(template: string, config: { addonName?: string; version?: string; addon?: { name?: string; version?: string } }, pkg: string): string {
     const shortPkg = PKG_SHORT[pkg.toLowerCase()] ?? pkg;
     const safeName = (config.addonName || config.addon?.name || "").replace(
         /\s+/g,
@@ -626,11 +611,11 @@ export function resolveArtifactName(template, config, pkg) {
         .replace("${build.package}", shortPkg);
 }
 
-export function addonFolderName(name, version) {
+export function addonFolderName(name: string, version: string): string {
     return name.replace(/\s+/g, "-") + "_" + version;
 }
 
-export function fileSize(filePath) {
+export function fileSize(filePath: string): string {
     try {
         const bytes = fs.statSync(filePath).size;
         if (bytes < 1024) return `${bytes} B`;
