@@ -625,3 +625,20 @@ export function fileSize(filePath: string): string {
         return "";
     }
 }
+
+/**
+ * Removes the assets directory inside outDir if it exists and is empty.
+ */
+export function removeEmptyAssetsDir(outDir: string): void {
+    const assetsDir = path.join(outDir, "assets");
+    if (!fs.existsSync(assetsDir)) return;
+
+    try {
+        const entries = fs.readdirSync(assetsDir);
+        if (entries.length === 0) {
+            fs.rmSync(assetsDir, { recursive: true, force: true });
+        }
+    } catch {
+        // Ignore errors when checking or removing
+    }
+}
