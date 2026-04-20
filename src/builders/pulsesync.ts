@@ -24,7 +24,7 @@ export function buildPulseSync(config: Config): void {
     const unpackedFolder = addonFolderName(name, version) + "_ps-unpacked";
     const outDir = path.join(cwd, "dist", unpackedFolder, name);
 
-    buildToDir(config, { targetFolder: "ps", outDir, copyLicense: true });
+    buildToDir(config, { targetFolder: "ps", outDir, copyLicense: true, copyMetadata: true });
 
     const artifacts: string[] = [];
     const ignoreRules = parseBuildIgnore(config._buildIgnore);
@@ -70,5 +70,5 @@ export function buildPulseSyncDev(config: Config): void {
     const outDir = path.join(config._cwd, "dev", config.addonName);
     if (fs.existsSync(outDir))
         fs.rmSync(outDir, { recursive: true, force: true });
-    buildToDir(config, { targetFolder: "ps", outDir, silent: true });
+    buildToDir(config, { targetFolder: "ps", outDir, silent: true, copyMetadata: true });
 }

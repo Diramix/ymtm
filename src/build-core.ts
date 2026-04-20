@@ -33,6 +33,8 @@ export interface BuildOptions {
     silent?: boolean;
     /** Copy LICENSE from project root into outDir */
     copyLicense?: boolean;
+    /** Copy metadata.json from src/ into outDir */
+    copyMetadata?: boolean;
 }
 
 /**
@@ -81,12 +83,14 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
     }
 
     // ── metadata.json ─────────────────────────────────────────────────────
-    const metaSrc = path.join(srcDir, "metadata.json");
-    if (fs.existsSync(metaSrc)) {
-        fs.copyFileSync(metaSrc, path.join(opts.outDir, "metadata.json"));
-        logFile("write", "metadata.json");
-    } else {
-        logWarn("metadata.json not found in src/");
+    if (opts.copyMetadata) {
+        const metaSrc = path.join(srcDir, "metadata.json");
+        if (fs.existsSync(metaSrc)) {
+            fs.copyFileSync(metaSrc, path.join(opts.outDir, "metadata.json"));
+            logFile("write", "metadata.json");
+        } else {
+            logWarn("metadata.json not found in src/");
+        }
     }
 
     // ── LICENSE ───────────────────────────────────────────────────────────
