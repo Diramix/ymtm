@@ -178,13 +178,13 @@ function buildWebOnefile(config: Config): string {
 	const body = `${cssBlock}${jsBlock}`.trim();
 	const output = header + body + "\n";
 
-	ensureDir(path.join(cwd, "dist"));
+	ensureDir(path.join(cwd, "release"));
 	const artifactName = resolveArtifactName(
 		onefileCfg!.artifactName,
 		config,
 		"web",
 	);
-	const outPath = path.join(cwd, "dist", artifactName);
+	const outPath = path.join(cwd, "release", artifactName);
 	fs.writeFileSync(outPath, output, "utf8");
 	log.artifact(artifactName, fileSize(outPath));
 	return artifactName;

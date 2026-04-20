@@ -21,7 +21,7 @@ export function buildPulseSync(config: Config): void {
 	log.info("building", { target: "pulsesync", addonName: name, version });
 
 	const unpackedFolder = addonFolderName(name, version) + "_ps-unpacked";
-	const outDir = path.join(cwd, "dist", unpackedFolder, name);
+	const outDir = path.join(cwd, "release", unpackedFolder, name);
 
 	buildToDir(config, {
 		targetFolder: "ps",
@@ -40,7 +40,7 @@ export function buildPulseSync(config: Config): void {
 			config,
 			"pulsesync",
 		);
-		const zipPath = path.join(cwd, "dist", zipName);
+		const zipPath = path.join(cwd, "release", zipName);
 		createZip(zipPath, [{ disk: outDir, archive: name }], ignoreRules);
 		log.artifact(zipName, fileSize(zipPath));
 		artifacts.push(zipName);
@@ -53,7 +53,7 @@ export function buildPulseSync(config: Config): void {
 			config,
 			"pulsesync",
 		);
-		const pextPath = path.join(cwd, "dist", pextName);
+		const pextPath = path.join(cwd, "release", pextName);
 		createZip(
 			pextPath,
 			fs
@@ -70,7 +70,7 @@ export function buildPulseSync(config: Config): void {
 
 // Dev build
 export function buildPulseSyncDev(config: Config): void {
-	const outDir = path.join(config._cwd, "dev", config.addonName);
+	const outDir = path.join(config._cwd, "dist", config.addonName);
 	if (fs.existsSync(outDir))
 		fs.rmSync(outDir, { recursive: true, force: true });
 	buildToDir(config, {

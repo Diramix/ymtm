@@ -21,7 +21,7 @@ export function buildNextMusic(config: Config): void {
 	log.info("building", { target: "nextmusic", addonName: name, version });
 
 	const unpackedFolder = addonFolderName(name, version) + "_nm-unpacked";
-	const outDir = path.join(cwd, "dist", unpackedFolder, name);
+	const outDir = path.join(cwd, "release", unpackedFolder, name);
 
 	buildToDir(config, { targetFolder: "nm", outDir });
 
@@ -34,7 +34,7 @@ export function buildNextMusic(config: Config): void {
 			config,
 			"nextmusic",
 		);
-		const tarGzPath = path.join(cwd, "dist", tarGzName);
+		const tarGzPath = path.join(cwd, "release", tarGzName);
 		createTarGz(tarGzPath, [{ disk: outDir, archive: name }], ignoreRules);
 		log.artifact(tarGzName, fileSize(tarGzPath));
 		log.done("nextmusic", tarGzName);
@@ -45,7 +45,7 @@ export function buildNextMusic(config: Config): void {
 
 // Dev build
 export function buildNextMusicDev(config: Config): void {
-	const outDir = path.join(config._cwd, "dev", config.addonName);
+	const outDir = path.join(config._cwd, "dist", config.addonName);
 	if (fs.existsSync(outDir))
 		fs.rmSync(outDir, { recursive: true, force: true });
 	buildToDir(config, { targetFolder: "nm", outDir, silent: true });
