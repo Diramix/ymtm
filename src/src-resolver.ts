@@ -1,20 +1,3 @@
-/**
- * src-resolver.ts  —  lives at ymtm/src/src-resolver.ts
- *
- * addon src/ layout:
- *
- *   src/
- *     metadata.json        ← addon metadata (fields: script, css)
- *     assets/              ← images/fonts → assets/ in nm & ps builds
- *     ps/                  ← exclusive to PulseSync
- *     nm/                  ← exclusive to NextMusic
- *     web/                 ← exclusive to Web
- *     **\/*.js / **\/*.css  ← shared (recursive, excl. target folders & assets)
- *
- * Both build AND dev: concat all JS → one file, all CSS → one file, then minify.
- * Names from metadata.json "script" / "css" fields (fallback: script.js / style.css).
- */
-
 import fs from "fs";
 import path from "path";
 import {
@@ -28,11 +11,9 @@ import {
 } from "./utils.js";
 import type { Metadata, Replacement } from "./types.js";
 
-// Target-specific folder names — never included in "shared"
 const TARGET_FOLDERS = new Set(["ps", "nm", "web"]);
 
-// ── Source collection ─────────────────────────────────────────────────────────
-
+// Source collection
 function findDirsNamed(
 	root: string,
 	name: string,
@@ -106,12 +87,14 @@ export function collectSourceFiles(
 	const targetDirs = findDirsNamed(srcDir, targetFolder, ignoreRules);
 	const assetsDirs = findAssetsDirs(srcDir, ignoreRules);
 
+	const otherTargetDirs = [...TARGET_FOLDERS]
+		.filter((f) => f !== targetFolder)
+		.flatMap((f) => findDirsNamed(srcDir, f, ignoreRules));
+
 	const skipPrefixes = new Set([
 		...targetDirs,
 		...assetsDirs,
-		...[...TARGET_FOLDERS]
-			.filter((f) => f !== targetFolder)
-			.flatMap((f) => findDirsNamed(srcDir, f, ignoreRules)),
+		...otherTargetDirs,
 	]);
 
 	collectShared(srcDir, shared, ignoreRules, skipPrefixes);
@@ -162,8 +145,7 @@ function collectAll(
 	}
 }
 
-// ── Asset copy ────────────────────────────────────────────────────────────────
-
+// Asset copy
 export function copyAssetsToOut(
 	srcDir: string,
 	outDir: string,
@@ -175,8 +157,7 @@ export function copyAssetsToOut(
 	}
 }
 
-// ── Bundle name resolution ────────────────────────────────────────────────────
-
+// Bundle name resolution
 export function getBundleNames(metadata: Metadata | null): {
 	js: string;
 	css: string;
@@ -187,8 +168,7 @@ export function getBundleNames(metadata: Metadata | null): {
 	};
 }
 
-// ── Bundler (used for BOTH build and dev) ─────────────────────────────────────
-
+// Bundler
 export function bundleToDir(
 	allFiles: string[],
 	srcDir: string,
@@ -209,7 +189,7 @@ export function bundleToDir(
 		const base = path.basename(srcFile, ext);
 
 		if (path.basename(srcFile) === "metadata.json") continue;
-		if (srcFile.replace(/\\/g, "/").split("/").includes("assets")) continue;
+		if (srcFile.split(/[\\/]/).includes("assets")) continue;
 		if (base === "icon" && IMAGE_EXTS.includes(ext)) continue;
 
 		if (ext === ".js" || ext === ".ts") {
@@ -248,8 +228,7 @@ export function bundleToDir(
 	}
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
+// Helpers
 export function relativeOutputPath(
 	filePath: string,
 	srcDir: string,

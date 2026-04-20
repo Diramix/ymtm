@@ -11,8 +11,7 @@ import {
 import { buildToDir } from "../build-core.js";
 import type { Config } from "../types.js";
 
-// ── Production build ──────────────────────────────────────────────────────────
-
+// Production build
 export function buildNextMusic(config: Config): void {
 	const cwd = config._cwd;
 	const name = config.addonName;
@@ -44,8 +43,7 @@ export function buildNextMusic(config: Config): void {
 	}
 }
 
-// ── Dev build ─────────────────────────────────────────────────────────────────
-
+// Dev build
 export function buildNextMusicDev(config: Config): void {
 	const outDir = path.join(config._cwd, "dev", config.addonName);
 	if (fs.existsSync(outDir))

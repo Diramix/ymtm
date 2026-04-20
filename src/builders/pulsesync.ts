@@ -11,8 +11,7 @@ import {
 import { buildToDir } from "../build-core.js";
 import type { Config } from "../types.js";
 
-// ── Production build ──────────────────────────────────────────────────────────
-
+// Production build
 export function buildPulseSync(config: Config): void {
 	const cwd = config._cwd;
 	const name = config.addonName;
@@ -69,8 +68,7 @@ export function buildPulseSync(config: Config): void {
 	log.done("pulsesync", artifacts.join(", ") || undefined);
 }
 
-// ── Dev build ─────────────────────────────────────────────────────────────────
-
+// Dev build
 export function buildPulseSyncDev(config: Config): void {
 	const outDir = path.join(config._cwd, "dev", config.addonName);
 	if (fs.existsSync(outDir))

@@ -13,13 +13,13 @@ export function loadConfig(cwd = process.cwd()): Config {
 	const pkg = JSON.parse(fs.readFileSync(pkgPath, "utf8")) as Config;
 	if (!pkg.build) throw new Error('"build" is required in package.json');
 
-	// ── Normalise targets list ─────────────────────────────────────────────────
+	// Normalise targets list
 	const rawTargets = pkg.build.targets ?? pkg.build.package ?? [];
 	pkg._targets = rawTargets.map((t) => t.toLowerCase());
 
 	pkg._cwd = cwd;
 
-	// ── ymtm version ──────────────────────────────────────────────────────────
+	// ymtm version
 	try {
 		const selfPkg = _require("../package.json") as { version?: string };
 		pkg._version = selfPkg.version || "1.0.0";
@@ -27,11 +27,11 @@ export function loadConfig(cwd = process.cwd()): Config {
 		pkg._version = "1.0.0";
 	}
 
-	// ── Source directory ──────────────────────────────────────────────────────
+	// Source directory
 	const srcRelative = pkg.build?.src ?? "src";
 	pkg._srcDir = path.join(cwd, srcRelative);
 
-	// ── metadata.json ─────────────────────────────────────────────────────────
+	// metadata.json
 	let metadata = null;
 	const metaPath = path.join(pkg._srcDir, "metadata.json");
 	if (fs.existsSync(metaPath))
@@ -46,7 +46,7 @@ export function loadConfig(cwd = process.cwd()): Config {
 			'"addonName" is required (in package.json or src/metadata.json)',
 		);
 
-	// ── .buildignore ──────────────────────────────────────────────────────────
+	// .buildignore
 	const ignorePath = path.join(cwd, ".buildignore");
 	pkg._buildIgnore = fs.existsSync(ignorePath)
 		? fs.readFileSync(ignorePath, "utf8")

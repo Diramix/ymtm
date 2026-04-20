@@ -11,7 +11,7 @@ import {
 import { collectSourceFiles } from "../src-resolver.js";
 import type { Config, Replacement } from "../types.js";
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
+// Helpers
 
 function fileToDataUrl(filePath: string): string {
 	const ext = path.extname(filePath).toLowerCase();
@@ -136,7 +136,7 @@ function buildTMHeader(metadata: Config["_metadata"], config: Config): string {
 	].join("\n");
 }
 
-// ── Build ─────────────────────────────────────────────────────────────────────
+// Build
 
 function buildWebOnefile(config: Config): string {
 	const cwd = config._cwd;
@@ -144,8 +144,8 @@ function buildWebOnefile(config: Config): string {
 	const metadata = config._metadata;
 	const replacements = buildWebReplacementMap(config);
 	const onefileCfg = config.web?.onefile;
-	const { shared, targetSpecific } = collectSourceFiles(srcDir, "web");
 
+	const { shared, targetSpecific } = collectSourceFiles(srcDir, "web");
 	const allFiles = [...shared, ...targetSpecific];
 
 	let cssBlock = "";

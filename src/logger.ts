@@ -1,4 +1,3 @@
-// Electron-builder style logger
 import os from "os";
 
 const RESET = "\x1b[0m";

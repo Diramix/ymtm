@@ -9,13 +9,10 @@ import type {
 	Replacement,
 } from "./types.js";
 
-// ── esbuild (lazy-loaded) ─────────────────────────────────────────────────────
-
+// esbuild (lazy-loaded)
 const _require = createRequire(import.meta.url);
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 let _esbuild: any = null;
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
 function getEsbuild(): any {
 	if (!_esbuild) {
 		try {
@@ -29,17 +26,6 @@ function getEsbuild(): any {
 	return _esbuild;
 }
 
-// ── Helpers ───────────────────────────────────────────────────────────────────
-
-/**
- * Парсит содержимое .buildignore в массив правил.
- * Поддерживает:
- *   - комментарии (#)
- *   - расширения файлов  (.map, *.map)
- *   - имена файлов/папок (README.md, .DS_Store)
- *   - пути с /           (src/dev/, src/dev/file.js)
- *   - glob-паттерны *    (*.test.js, dev_*)
- */
 export function parseBuildIgnore(raw = ""): string[] {
 	return raw
 		.split(/\r?\n/)
@@ -47,9 +33,6 @@ export function parseBuildIgnore(raw = ""): string[] {
 		.filter((l) => l && !l.startsWith("#"));
 }
 
-/**
- * Проверяет, нужно ли исключить файл/папку из сборки.
- */
 export function shouldIgnore(diskPath: string, rules: string[]): boolean {
 	if (!rules || rules.length === 0) return false;
 
@@ -58,7 +41,6 @@ export function shouldIgnore(diskPath: string, rules: string[]): boolean {
 	const ext = path.extname(basename).toLowerCase();
 
 	for (const rule of rules) {
-		// Расширение: .map  или  *.map
 		if (
 			rule.startsWith("*.") ||
 			(rule.startsWith(".") && !rule.includes("/"))
@@ -68,19 +50,15 @@ export function shouldIgnore(diskPath: string, rules: string[]): boolean {
 			continue;
 		}
 
-		// Glob в имени файла без пути (напр. *.test.js, dev_*)
 		if (!rule.includes("/") && rule.includes("*")) {
 			if (minimatch(basename, rule)) return true;
 			continue;
 		}
 
-		// Путь или имя без glob
-		const ruleClean = rule.replace(/\/$/, ""); // убираем trailing /
+		const ruleClean = rule.replace(/\/$/, "");
 		if (!ruleClean.includes("/")) {
-			// просто имя — совпадение с basename
 			if (basename === ruleClean) return true;
 		} else {
-			// путь — проверяем суффикс нормализованного пути
 			if (
 				normalised.endsWith("/" + ruleClean) ||
 				normalised.includes("/" + ruleClean + "/")
@@ -91,7 +69,6 @@ export function shouldIgnore(diskPath: string, rules: string[]): boolean {
 	return false;
 }
 
-/** Простейший minimatch для паттернов с * (без рекурсивных **) */
 function minimatch(str: string, pattern: string): boolean {
 	const re = new RegExp(
 		"^" +
@@ -161,8 +138,7 @@ export function findImageFile(dir: string, baseName: string): string | null {
 	return null;
 }
 
-// ── Minification ──────────────────────────────────────────────────────────────
-
+// Minification
 export function minifyCSS(src: string, content?: string): string {
 	const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
 	return getEsbuild().transformSync(code, { loader: "css", minify: true })
@@ -189,10 +165,6 @@ export function minifyTS(src: string, content?: string): string {
 	}).code as string;
 }
 
-/**
- * Bundle a list of JS/TS files into a single minified IIFE string.
- * Uses esbuild bundle mode — resolves all imports, deduplicates dependencies.
- */
 export function bundleJS(
 	files: string[],
 	replacements: Replacement[] = [],
@@ -245,7 +217,6 @@ export function bundleJS(
 		}
 	}
 
-	// Suppress unused variable warning
 	void patchedContents;
 
 	const result = esbuild.buildSync({
@@ -287,8 +258,7 @@ export function minifyAndWrite(
 	fs.writeFileSync(destFile, content, "utf8");
 }
 
-// ── Replacements ──────────────────────────────────────────────────────────────
-
+// Replacements
 export function applyReplacements(
 	content: string,
 	replacements: Replacement[] = [],
@@ -311,8 +281,7 @@ export function applyReplacementsToFile(
 	fs.writeFileSync(file, content, "utf8");
 }
 
-// ── TAR.GZ (pure Node.js) ─────────────────────────────────────────────────────
-
+// TAR.GZ (pure Node.js)
 function tarChecksum(block: Buffer): number {
 	let sum = 0;
 	for (let i = 0; i < 512; i++) {
@@ -448,13 +417,13 @@ export function createTarGz(
 	fs.writeFileSync(outputPath, gz);
 }
 
-// ── ZIP (pure Node.js) ────────────────────────────────────────────────────────
-
+// ZIP (pure Node.js)
 function uint16LE(n: number): Buffer {
 	const b = Buffer.alloc(2);
 	b.writeUInt16LE(n, 0);
 	return b;
 }
+
 function uint32LE(n: number): Buffer {
 	const b = Buffer.alloc(4);
 	b.writeUInt32LE(n >>> 0, 0);
@@ -618,8 +587,7 @@ export function createZip(
 	fs.writeFileSync(outputPath, Buffer.concat([...chunks, centralDirBuf, eocd]));
 }
 
-// ── Artifact name resolver ────────────────────────────────────────────────────
-
+// Artifact name resolver
 const PKG_SHORT: Record<string, string> = {
 	nextmusic: "nm",
 	pulsesync: "ps",
@@ -661,9 +629,6 @@ export function fileSize(filePath: string): string {
 	}
 }
 
-/**
- * Removes the assets directory inside outDir if it exists and is empty.
- */
 export function removeEmptyAssetsDir(outDir: string): void {
 	const assetsDir = path.join(outDir, "assets");
 	if (!fs.existsSync(assetsDir)) return;
@@ -673,7 +638,5 @@ export function removeEmptyAssetsDir(outDir: string): void {
 		if (entries.length === 0) {
 			fs.rmSync(assetsDir, { recursive: true, force: true });
 		}
-	} catch {
-		// Ignore errors when checking or removing
-	}
+	} catch {}
 }

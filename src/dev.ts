@@ -5,7 +5,6 @@ import { loadConfig } from "./config.js";
 import { buildDevTarget } from "./builder.js";
 import type { Config } from "./types.js";
 
-// Display names
 const TARGET_DISPLAY: Record<string, string> = {
 	nextmusic: "Next Music",
 	pulsesync: "PulseSync",
@@ -15,7 +14,6 @@ function displayName(target: string): string {
 	return TARGET_DISPLAY[target] ?? target;
 }
 
-// Interactive arrow-key prompt
 const RESET = "\x1b[0m";
 const BOLD = "\x1b[1m";
 const CYAN = "\x1b[36m";
@@ -57,26 +55,25 @@ function prompt(question: string, choices: string[]): Promise<string> {
 		}
 
 		function onData(key: string): void {
-			// Ctrl+C
 			if (key === "\u0003") {
 				cleanup();
 				process.stdout.write("\n");
 				process.exit(0);
 			}
-			// Enter
+
 			if (key === "\r" || key === "\n") {
 				cleanup();
 				process.stdout.write("\n");
 				resolve(choices[selected]);
 				return;
 			}
-			// Up arrow
+
 			if (key === "\x1b[A") {
 				selected = (selected - 1 + choices.length) % choices.length;
 				render();
 				return;
 			}
-			// Down arrow
+
 			if (key === "\x1b[B") {
 				selected = (selected + 1) % choices.length;
 				render();
@@ -88,7 +85,6 @@ function prompt(question: string, choices: string[]): Promise<string> {
 	});
 }
 
-// Silent build wrapper
 function buildSilent(config: Config, target: string): void {
 	process.stdout.write("  compiling...");
 	const start = Date.now();
@@ -102,7 +98,6 @@ function buildSilent(config: Config, target: string): void {
 	}
 }
 
-// File watcher
 const TARGET_DIRS: Record<string, string> = {
 	pulsesync: "ps",
 	nextmusic: "nm",
@@ -163,7 +158,6 @@ function watchDirFallback(dir: string, config: Config, target: string): void {
 	}
 }
 
-// Entry point
 export async function runDev(cliTarget?: string): Promise<void> {
 	let config: Config;
 	try {

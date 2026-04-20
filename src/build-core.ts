@@ -1,11 +1,3 @@
-/**
- * build-core.ts — единое ядро сборки для всех target'ов.
- *
- * Все правила сборки (копирование иконки/баннера, metadata.json, LICENSE,
- * assets, бандлинг JS/CSS, удаление пустой assets/) живут здесь.
- * Production и dev билдеры используют одну и ту же логику.
- */
-
 import fs from "fs";
 import path from "path";
 import * as log from "./logger.js";
@@ -22,25 +14,15 @@ import {
 } from "./src-resolver.js";
 import type { Config } from "./types.js";
 
-// ── Public API ────────────────────────────────────────────────────────────────
-
+// Public API
 export interface BuildOptions {
-	/** Target folder name inside src/ ("ps", "nm", "web") */
 	targetFolder: string;
-	/** Output directory for the build result */
 	outDir: string;
-	/** Whether to suppress logging (true for dev/watch) */
 	silent?: boolean;
-	/** Copy LICENSE from project root into outDir */
 	copyLicense?: boolean;
-	/** Copy metadata.json from src/ into outDir */
 	copyMetadata?: boolean;
 }
 
-/**
- * Execute a full build into `outDir` using the given options.
- * This is the single source of truth for how ps/nm builds are assembled.
- */
 export function buildToDir(config: Config, opts: BuildOptions): void {
 	const srcDir = config._srcDir;
 	const metadata = config._metadata;
@@ -49,6 +31,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 	const silent = opts.silent ?? false;
 
 	const noop = () => {};
+
 	const logFile: (action: string, name: string) => void = silent
 		? noop
 		: (a, n) => log.file(a, n);
@@ -63,7 +46,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 
 	ensureDir(opts.outDir);
 
-	// ── Icon ──────────────────────────────────────────────────────────────
+	// Icon
 	const brandingDir = path.join(srcDir, "assets", "branding");
 	const iconFile =
 		findImageFile(brandingDir, "icon") ?? findImageFile(srcDir, "icon");
@@ -75,7 +58,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		logWarn("No icon image found in assets/branding/ or src/");
 	}
 
-	// ── Banner ────────────────────────────────────────────────────────────
+	// Banner
 	const bannerFile =
 		findImageFile(brandingDir, "banner") ?? findImageFile(srcDir, "banner");
 	if (bannerFile) {
@@ -84,7 +67,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		logFile("copy", `banner${ext}`);
 	}
 
-	// ── metadata.json ─────────────────────────────────────────────────────
+	// metadata.json
 	if (opts.copyMetadata) {
 		const metaSrc = path.join(srcDir, "metadata.json");
 		if (fs.existsSync(metaSrc)) {
@@ -95,7 +78,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		}
 	}
 
-	// ── LICENSE ───────────────────────────────────────────────────────────
+	// LICENSE
 	if (opts.copyLicense) {
 		const licenseSrc = path.join(config._cwd, "LICENSE");
 		if (fs.existsSync(licenseSrc)) {
@@ -106,14 +89,14 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		}
 	}
 
-	// ── Assets ────────────────────────────────────────────────────────────
+	// Assets
 	copyAssetsToOut(srcDir, opts.outDir, ignoreRules);
 	const outBranding = path.join(opts.outDir, "assets", "branding");
 	if (fs.existsSync(outBranding))
 		fs.rmSync(outBranding, { recursive: true, force: true });
 	if (assets.length > 0) logFile("copy", "assets/");
 
-	// ── Bundle JS/CSS ─────────────────────────────────────────────────────
+	// Bundle JS/CSS
 	bundleToDir(
 		allFiles,
 		srcDir,
@@ -125,6 +108,6 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		ignoreRules,
 	);
 
-	// ── Cleanup: remove empty assets folder ───────────────────────────────
+	// Cleanup
 	removeEmptyAssetsDir(opts.outDir);
 }
