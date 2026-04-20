@@ -15,7 +15,9 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "tsc"
+		"build": "tsc",
+		"format": "prettier --write .",
+		"format:check": "prettier --check ."
 	},
 	"engines": {
 		"node": ">=18"
@@ -26,6 +28,7 @@
 	},
 	"devDependencies": {
 		"@types/node": "^25.6.0",
+		"prettier": "^3.8.3",
 		"typescript": "^6.0.2"
 	}
 }

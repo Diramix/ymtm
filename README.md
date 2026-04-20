@@ -6,11 +6,11 @@ npm install --save-dev @diram1x/ymtm
 
 ## Build Outputs
 
-| Client                                                                | Build Command          | Formats         |
-| --------------------------------------------------------------------- | ---------------------- | --------------- |
-| **[Next Music](https://nextmusic.diram1x.ru/)** | `ymtm build nextmusic` | `.tar.gz`          |
-| **[PulseSync](https://pulsesync.dev/)**                               | `ymtm build pulsesync` | `.zip`, `.pext` |
-| **[Yandex Music Web](https://music.yandex.ru/)**                      | `ymtm build web`       | `.user.js`      |
+| Client                                           | Build Command          | Formats         |
+| ------------------------------------------------ | ---------------------- | --------------- |
+| **[Next Music](https://nextmusic.diram1x.ru/)**  | `ymtm build nextmusic` | `.tar.gz`       |
+| **[PulseSync](https://pulsesync.dev/)**          | `ymtm build pulsesync` | `.zip`, `.pext` |
+| **[Yandex Music Web](https://music.yandex.ru/)** | `ymtm build web`       | `.user.js`      |
 
 ### Naming
 
@@ -18,18 +18,17 @@ npm install --save-dev @diram1x/ymtm
 ${theme.name}_${theme.version}_${build.package}.ext
 ```
 
-* `theme.name` — theme name
-* `theme.version` — version
-* `build.package` — target
+- `theme.name` — theme name
+- `theme.version` — version
+- `build.package` — target
 
 ### Web Features
 
-* **icon** — Tampermonkey icon
-* **onefile** — bundles into a single `.user.js`
-* **replaceLink**:
-
-  * `from` → embeds asset into CSS
-  * `from` + `to` → replaces URL
+- **icon** — Tampermonkey icon
+- **onefile** — bundles into a single `.user.js`
+- **replaceLink**:
+  - `from` → embeds asset into CSS
+  - `from` + `to` → replaces URL
 
 ### Output Example
 
@@ -42,6 +41,7 @@ dist/
 ```
 
 ### package.json Example
+
 ```
 {
     "name": "example-theme",
@@ -100,4 +100,4 @@ dist/
 
 ## Dependencies
 
-* esbuild — used for building and minifying code
+- esbuild — used for building and minifying code
