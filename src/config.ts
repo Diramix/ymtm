@@ -20,12 +20,8 @@ export function loadConfig(cwd = process.cwd()): Config {
 	pkg._cwd = cwd;
 
 	// ymtm version
-	try {
-		const selfPkg = _require("../package.json") as { version?: string };
-		pkg._version = selfPkg.version || "1.0.0";
-	} catch {
-		pkg._version = "1.0.0";
-	}
+	const selfPkg = _require("../package.json") as { version?: string };
+	pkg._version = selfPkg.version || "Unknown";
 
 	// Source directory
 	const srcRelative = pkg.build?.src ?? "src";
