@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as log from "./logger.js";
+import config from "../package.json" with { type: "json" };
 
 const DEFAULT_METADATA = {
 	name: "addon",
@@ -41,7 +42,7 @@ const DEFAULT_PKG = {
 		onefile: { artifactName: "${addon.name}_${addon.version}_web.user.js" },
 	},
 	devDependencies: {
-		ymtm: "github:your-username/ymtm",
+		"@diram1x/ymtm": `^${config.version}`,
 	},
 };
 
@@ -50,20 +51,19 @@ export function init(cwd = process.cwd()): void {
 
 	// package.json
 	const pkgPath = path.join(cwd, "package.json");
-	if (fs.existsSync(pkgPath)) {
-		log.warn("package.json already exists, skipping");
-	} else {
-		fs.writeFileSync(pkgPath, JSON.stringify(DEFAULT_PKG, null, 2), "utf8");
-		log.file("write", "package.json");
-	}
+
+	fs.writeFileSync(pkgPath, JSON.stringify(DEFAULT_PKG, null, 2), "utf8");
+	log.file("write", "package.json");
 
 	// src/
 	const srcDir = path.join(cwd, "src");
+
 	fs.mkdirSync(srcDir, { recursive: true });
 	log.file("write", "src/");
 
 	// src/metadata.json
 	const metaPath = path.join(srcDir, "metadata.json");
+
 	if (!fs.existsSync(metaPath)) {
 		fs.writeFileSync(
 			metaPath,
@@ -75,6 +75,7 @@ export function init(cwd = process.cwd()): void {
 
 	// src/style.css
 	const cssPath = path.join(srcDir, "style.css");
+
 	if (!fs.existsSync(cssPath)) {
 		fs.writeFileSync(cssPath, "/* shared styles */\n", "utf8");
 		log.file("write", "src/style.css");
@@ -82,6 +83,7 @@ export function init(cwd = process.cwd()): void {
 
 	// tsconfig.json — для IDE-поддержки (сборка идёт через esbuild, не tsc)
 	const tsconfigPath = path.join(cwd, "tsconfig.json");
+
 	if (!fs.existsSync(tsconfigPath)) {
 		const tsconfig = {
 			compilerOptions: {
@@ -96,6 +98,7 @@ export function init(cwd = process.cwd()): void {
 			},
 			include: ["src/**/*"],
 		};
+
 		fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2), "utf8");
 		log.file("write", "tsconfig.json");
 	}
@@ -103,6 +106,7 @@ export function init(cwd = process.cwd()): void {
 	// src/script.ts — TypeScript entry point
 	const tsPath = path.join(srcDir, "script.ts");
 	const jsPath = path.join(srcDir, "script.js");
+
 	if (!fs.existsSync(tsPath) && !fs.existsSync(jsPath)) {
 		fs.writeFileSync(tsPath, "// shared script\n", "utf8");
 		log.file("write", "src/script.ts");
@@ -115,31 +119,37 @@ export function init(cwd = process.cwd()): void {
 
 	// src/assets/
 	const assetsDir = path.join(srcDir, "assets");
+
 	fs.mkdirSync(assetsDir, { recursive: true });
 	log.file("write", "src/assets/");
 
 	// src/assets/branding/
 	const brandingDir = path.join(assetsDir, "branding");
+
 	fs.mkdirSync(brandingDir, { recursive: true });
 	log.file("write", "src/assets/branding/");
 
 	// src/ps/
 	const psDir = path.join(srcDir, "ps");
+
 	fs.mkdirSync(psDir, { recursive: true });
 	log.file("write", "src/ps/");
 
 	// src/nm/
 	const nmDir = path.join(srcDir, "nm");
+
 	fs.mkdirSync(nmDir, { recursive: true });
 	log.file("write", "src/nm/");
 
 	// src/web/
 	const webDir = path.join(srcDir, "web");
+
 	fs.mkdirSync(webDir, { recursive: true });
 	log.file("write", "src/web/");
 
 	// .buildignore
 	const ignorePath = path.join(cwd, ".buildignore");
+
 	if (!fs.existsSync(ignorePath)) {
 		fs.writeFileSync(
 			ignorePath,
