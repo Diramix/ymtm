@@ -42,7 +42,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		opts.targetFolder,
 		ignoreRules,
 	);
-	const allFiles = [...shared, ...targetSpecific];
+	const allFiles = [...targetSpecific, ...shared];
 
 	ensureDir(opts.outDir);
 
