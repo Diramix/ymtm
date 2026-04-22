@@ -12,6 +12,7 @@ import type {
 // esbuild (lazy-loaded)
 const _require = createRequire(import.meta.url);
 let _esbuild: any = null;
+let _sass: any = null;
 
 function getEsbuild(): any {
 	if (!_esbuild) {
@@ -24,6 +25,17 @@ function getEsbuild(): any {
 		}
 	}
 	return _esbuild;
+}
+
+function getSass(): any {
+	if (!_sass) {
+		try {
+			_sass = _require("sass");
+		} catch {
+			throw new Error("sass is not installed. Run: npm install sass");
+		}
+	}
+	return _sass;
 }
 
 export function parseBuildIgnore(raw = ""): string[] {
@@ -139,6 +151,14 @@ export function findImageFile(dir: string, baseName: string): string | null {
 }
 
 // Minification
+export function compileSCSS(src: string, content?: string): string {
+	const sass = getSass();
+	if (content !== undefined) {
+		return sass.compileString(content, { style: "compressed", url: new URL(`file://${src}`) }).css as string;
+	}
+	return sass.compile(src, { style: "compressed" }).css as string;
+}
+
 export function minifyCSS(src: string, content?: string): string {
 	const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
 	return getEsbuild().transformSync(code, { loader: "css", minify: true })
@@ -252,6 +272,7 @@ export function minifyAndWrite(
 	let content = fs.readFileSync(srcFile, "utf8");
 	content = applyReplacements(content, replacements);
 	if (ext === ".css") content = minifyCSS(srcFile, content);
+	else if (ext === ".scss") content = compileSCSS(srcFile, content);
 	else if (ext === ".js") content = minifyJS(srcFile, content);
 	else if (ext === ".html") content = minifyHTML(srcFile, content);
 	ensureDir(path.dirname(destFile));

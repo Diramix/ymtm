@@ -6,6 +6,7 @@ import {
 	shouldIgnore,
 	IMAGE_EXTS,
 	bundleJS,
+	compileSCSS,
 	minifyCSS,
 	applyReplacements,
 } from "./utils.js";
@@ -195,17 +196,33 @@ export function bundleToDir(
 		if (ext === ".js" || ext === ".ts") {
 			jsFiles.push(srcFile);
 			logFile("minify", path.relative(srcDir, srcFile) + " → " + jsName);
-		} else if (ext === ".css") {
+		}
+
+		if (ext === ".css") {
 			let content = fs.readFileSync(srcFile, "utf8");
 			content = applyReplacements(content, replacements);
 			cssChunks.push(minifyCSS(srcFile, content).trim());
 			logFile("minify", path.relative(srcDir, srcFile) + " → " + cssName);
-		} else if (IMAGE_EXTS.includes(ext)) {
+		}
+
+		if (ext === ".scss") {
+			let content = fs.readFileSync(srcFile, "utf8");
+			content = applyReplacements(content, replacements);
+			cssChunks.push(compileSCSS(srcFile, content).trim());
+			logFile("minify", path.relative(srcDir, srcFile) + " → " + cssName);
+		}
+
+		if (IMAGE_EXTS.includes(ext)) {
 			const dest = path.join(outDir, path.basename(srcFile));
 			ensureDir(path.dirname(dest));
 			fs.copyFileSync(srcFile, dest);
 			logFile("copy", path.relative(srcDir, srcFile));
-		} else {
+		} else if (
+			ext !== ".js" &&
+			ext !== ".ts" &&
+			ext !== ".css" &&
+			ext !== ".scss"
+		) {
 			const rel = relativeOutputPath(srcFile, srcDir, targetFolder);
 			const dest = path.join(outDir, rel);
 			ensureDir(path.dirname(dest));
