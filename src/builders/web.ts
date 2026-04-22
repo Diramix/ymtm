@@ -7,6 +7,7 @@ import {
 	fileSize,
 	bundleJS,
 	minifyCSS,
+	compileSCSS,
 } from "../utils.js";
 import { collectSourceFiles } from "../src-resolver.js";
 import type { Config, Replacement } from "../types.js";
@@ -158,15 +159,16 @@ function buildWebOnefile(config: Config): string {
 		if (ext === ".js" || ext === ".ts") {
 			jsFiles.push(f);
 			log.file("minify", path.relative(srcDir, f));
-		} else if (ext === ".css") {
+		} else if (ext === ".css" || ext === ".scss") {
 			cssFiles.push(f);
 		}
 	}
 
 	for (const f of cssFiles) {
+		const ext = path.extname(f).toLowerCase();
 		let content = fs.readFileSync(f, "utf8");
 		content = applyReplacements(content, replacements);
-		content = minifyCSS(f, content);
+		content = ext === ".scss" ? compileSCSS(f, content) : minifyCSS(f, content);
 		cssBlock += cssToJS(content).trim();
 		log.file("minify", `${path.relative(srcDir, f)} → css-in-js`);
 	}
