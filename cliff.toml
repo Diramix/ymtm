@@ -20,7 +20,7 @@ commit_parsers = [
   { message = "(?i)^fix", group = "Bug Fixes" },
   { message = "(?i)^refactor", group = "Improvements" },
   { message = "(?i)^perf", group = "Improvements" },
-  { message = "(?i)^chore: change version", skip = true },
+  { message = "(?i)^chore: Change version", skip = true },
   { message = "(?i)^chore", group = "Other Changes" },
   { message = "(?i)^docs", group = "Documentation" },
   { message = "(?i)^style", skip = true },
