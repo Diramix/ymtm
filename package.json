@@ -1,6 +1,6 @@
 {
 	"name": "@diram1x/ymtm",
-	"version": "3.3.1",
+	"version": "3.4.0",
 	"description": "Yandex Music Theme Maker",
 	"type": "module",
 	"publishConfig": {
