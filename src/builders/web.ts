@@ -10,6 +10,7 @@ import {
 	compileSCSS,
 } from "../utils.js";
 import { collectSourceFiles } from "../src-resolver.js";
+import { generateEnvReplacements } from "../env.js";
 import type { Config, Replacement } from "../types.js";
 
 // Helpers
@@ -143,8 +144,14 @@ function buildWebOnefile(config: Config): string {
 	const cwd = config._cwd;
 	const srcDir = config._srcDir;
 	const metadata = config._metadata;
-	const replacements = buildWebReplacementMap(config);
+	const webReplacements = buildWebReplacementMap(config);
 	const onefileCfg = config.web?.onefile;
+
+	// Generate env-based replacements for production (only YMTM_PUBLIC_)
+	const envReplacements = generateEnvReplacements(config._env, false);
+
+	// Combine web replacements with env replacements
+	const replacements = [...webReplacements, ...envReplacements];
 
 	const { shared, targetSpecific } = collectSourceFiles(srcDir, "web");
 	const allFiles = [...shared, ...targetSpecific];

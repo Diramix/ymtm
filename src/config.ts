@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import { createRequire } from "module";
+import { loadEnvFile } from "./env.js";
 import type { Config } from "./types.js";
 
 const _require = createRequire(import.meta.url);
@@ -18,6 +19,9 @@ export function loadConfig(cwd = process.cwd()): Config {
 	pkg._targets = rawTargets.map((t) => t.toLowerCase());
 
 	pkg._cwd = cwd;
+
+	// Load .env file
+	pkg._env = loadEnvFile(cwd);
 
 	// ymtm version
 	const selfPkg = _require("../package.json") as { version?: string };

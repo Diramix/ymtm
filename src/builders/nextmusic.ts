@@ -48,5 +48,5 @@ export function buildNextMusicDev(config: Config): void {
 	const outDir = path.join(config._cwd, "dist", config.addonName);
 	if (fs.existsSync(outDir))
 		fs.rmSync(outDir, { recursive: true, force: true });
-	buildToDir(config, { targetFolder: "nm", outDir, silent: true });
+	buildToDir(config, { targetFolder: "nm", outDir, silent: true, isDev: true });
 }

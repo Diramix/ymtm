@@ -78,5 +78,6 @@ export function buildPulseSyncDev(config: Config): void {
 		outDir,
 		silent: true,
 		copyMetadata: true,
+		isDev: true,
 	});
 }

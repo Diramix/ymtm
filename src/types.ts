@@ -43,6 +43,7 @@ export interface Config {
 	_srcDir: string;
 	_metadata: Metadata | null;
 	_buildIgnore: string;
+	_env: Record<string, string>;
 }
 
 export interface ArchiveEntry {

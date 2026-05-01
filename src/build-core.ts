@@ -12,6 +12,7 @@ import {
 	copyAssetsToOut,
 	bundleToDir,
 } from "./src-resolver.js";
+import { generateEnvReplacements } from "./env.js";
 import type { Config } from "./types.js";
 
 // Public API
@@ -21,14 +22,22 @@ export interface BuildOptions {
 	silent?: boolean;
 	copyLicense?: boolean;
 	copyMetadata?: boolean;
+	isDev?: boolean;
 }
 
 export function buildToDir(config: Config, opts: BuildOptions): void {
 	const srcDir = config._srcDir;
 	const metadata = config._metadata;
-	const replacements = config.web?.replaceLink ?? [];
+	const webReplacements = config.web?.replaceLink ?? [];
 	const ignoreRules = parseBuildIgnore(config._buildIgnore);
 	const silent = opts.silent ?? false;
+	const isDev = opts.isDev ?? false;
+
+	// Generate env-based replacements
+	const envReplacements = generateEnvReplacements(config._env, isDev);
+
+	// Combine web replacements with env replacements
+	const replacements = [...webReplacements, ...envReplacements];
 
 	const noop = () => {};
 
