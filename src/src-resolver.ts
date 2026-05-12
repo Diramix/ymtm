@@ -178,7 +178,7 @@ export function bundleToDir(
 	metadata: Metadata | null,
 	replacements: Replacement[],
 	logFile: (action: string, name: string) => void,
-	ignoreRules: string[] = [],
+	isDev = false,
 ): void {
 	const { js: jsName, css: cssName } = getBundleNames(metadata);
 
@@ -233,7 +233,7 @@ export function bundleToDir(
 
 	if (jsFiles.length > 0) {
 		ensureDir(outDir);
-		const bundled = bundleJS(jsFiles, replacements);
+		const bundled = bundleJS(jsFiles, replacements, isDev);
 		fs.writeFileSync(path.join(outDir, jsName), bundled, "utf8");
 		logFile("write", jsName);
 	}

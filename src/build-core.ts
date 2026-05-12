@@ -114,7 +114,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 		metadata,
 		replacements,
 		logFile,
-		ignoreRules,
+		isDev,
 	);
 
 	// Cleanup

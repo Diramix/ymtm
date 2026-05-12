@@ -13,6 +13,7 @@ import type {
 const _require = createRequire(import.meta.url);
 let _esbuild: any = null;
 let _sass: any = null;
+let _obfuscator: any = null;
 
 function getEsbuild(): any {
 	if (!_esbuild) {
@@ -36,6 +37,19 @@ function getSass(): any {
 		}
 	}
 	return _sass;
+}
+
+function getObfuscator(): any {
+	if (!_obfuscator) {
+		try {
+			_obfuscator = _require("javascript-obfuscator");
+		} catch {
+			throw new Error(
+				"javascript-obfuscator is not installed. Run: npm install --save-dev javascript-obfuscator",
+			);
+		}
+	}
+	return _obfuscator;
 }
 
 export function parseBuildIgnore(raw = ""): string[] {
@@ -150,44 +164,106 @@ export function findImageFile(dir: string, baseName: string): string | null {
 	return null;
 }
 
+// Compact JS to single line with javascript-obfuscator (only for formatting)
+export function compactJS(code: string): string {
+	const obfuscator = getObfuscator();
+
+	const originalLog = console.log;
+	const originalWarn = console.warn;
+	const originalError = console.error;
+	const originalStdoutWrite = process.stdout.write;
+
+	console.log = () => {};
+	console.warn = () => {};
+	console.error = () => {};
+	process.stdout.write = (() => {}) as any;
+
+	try {
+		const result = obfuscator.obfuscate(code, {
+			compact: true,
+			controlFlowFlattening: false,
+			deadCodeInjection: false,
+			debugProtection: false,
+			disableConsoleOutput: false,
+			identifierNamesGenerator: "mangled",
+			log: false,
+			renameGlobals: false,
+			rotateStringArray: false,
+			selfDefending: false,
+			stringArray: false,
+		});
+
+		let output = result.obfuscatedCode;
+		// Collapse multiple spaces in hex-encoded strings
+		output = output.replace(/\\x20{2,}/g, "\\x20");
+		return output;
+	} finally {
+		// Restore all output methods
+		console.log = originalLog;
+		console.warn = originalWarn;
+		console.error = originalError;
+		process.stdout.write = originalStdoutWrite;
+	}
+}
+
 // Minification
 export function compileSCSS(src: string, content?: string): string {
 	const sass = getSass();
+	let css: string;
 	if (content !== undefined) {
-		return sass.compileString(content, { style: "compressed", url: new URL(`file://${src}`) }).css as string;
+		css = sass.compileString(content, {
+			style: "compressed",
+			url: new URL(`file://${src}`),
+		}).css as string;
+	} else {
+		css = sass.compile(src, { style: "compressed" }).css as string;
 	}
-	return sass.compile(src, { style: "compressed" }).css as string;
+	return css
+		.replace(/\r?\n/g, "")
+		.replace(/\s+/g, " ")
+		.replace(/\s*([{}:;,])\s*/g, "$1")
+		.trim();
 }
 
 export function minifyCSS(src: string, content?: string): string {
 	const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
-	return getEsbuild().transformSync(code, { loader: "css", minify: true })
-		.code as string;
+	const result = getEsbuild().transformSync(code, {
+		loader: "css",
+		minify: true,
+	}).code as string;
+	return result
+		.replace(/\r?\n/g, "")
+		.replace(/\s+/g, " ")
+		.replace(/\s*([{}:;,])\s*/g, "$1")
+		.trim();
 }
 
-export function minifyJS(src: string, content?: string): string {
+export function minifyJS(src: string, content?: string, isDev = false): string {
 	const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
-	return getEsbuild().transformSync(code, {
+	const result = getEsbuild().transformSync(code, {
 		loader: "js",
 		format: "iife",
 		minify: true,
 		target: "es2017",
 	}).code as string;
+	return isDev ? result : compactJS(result);
 }
 
-export function minifyTS(src: string, content?: string): string {
+export function minifyTS(src: string, content?: string, isDev = false): string {
 	const code = content !== undefined ? content : fs.readFileSync(src, "utf8");
-	return getEsbuild().transformSync(code, {
+	const result = getEsbuild().transformSync(code, {
 		loader: "ts",
 		format: "iife",
 		minify: true,
 		target: "es2017",
 	}).code as string;
+	return isDev ? result : compactJS(result);
 }
 
 export function bundleJS(
 	files: string[],
 	replacements: Replacement[] = [],
+	isDev = false,
 ): string {
 	if (files.length === 0) return "";
 
@@ -231,7 +307,8 @@ export function bundleJS(
 				write: false,
 			});
 
-			return result.outputFiles[0].text as string;
+			const code = result.outputFiles[0].text as string;
+			return isDev ? code : compactJS(code);
 		} finally {
 			fs.rmSync(tmpRoot, { recursive: true, force: true });
 		}
@@ -252,14 +329,15 @@ export function bundleJS(
 		write: false,
 	});
 
-	return result.outputFiles[0].text as string;
+	const code = result.outputFiles[0].text as string;
+	return isDev ? code : compactJS(code);
 }
 
 export function minifyHTML(src: string, content?: string): string {
 	let code = content !== undefined ? content : fs.readFileSync(src, "utf8");
 	code = code.replace(/<!--(?!\[if)[\s\S]*?-->/g, "");
 	code = code.replace(/>\s+</g, "><");
-	code = code.replace(/\s{2,}/g, " ").trim();
+	code = code.replace(/\s+/g, " ").replace(/\r?\n/g, "").trim();
 	return code;
 }
 
@@ -267,13 +345,14 @@ export function minifyAndWrite(
 	srcFile: string,
 	destFile: string,
 	replacements: Replacement[] = [],
+	isDev = false,
 ): void {
 	const ext = path.extname(srcFile).toLowerCase();
 	let content = fs.readFileSync(srcFile, "utf8");
 	content = applyReplacements(content, replacements);
 	if (ext === ".css") content = minifyCSS(srcFile, content);
 	else if (ext === ".scss") content = compileSCSS(srcFile, content);
-	else if (ext === ".js") content = minifyJS(srcFile, content);
+	else if (ext === ".js") content = minifyJS(srcFile, content, isDev);
 	else if (ext === ".html") content = minifyHTML(srcFile, content);
 	ensureDir(path.dirname(destFile));
 	fs.writeFileSync(destFile, content, "utf8");
