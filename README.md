@@ -18,14 +18,14 @@ npm install --save-dev @diram1x/ymtm
 ${theme.name}_${theme.version}_${build.package}.ext
 ```
 
-- `theme.name` — theme name
-- `theme.version` — version
-- `build.package` — target
+- `theme.name` - theme name
+- `theme.version` - version
+- `build.package` - target
 
 ### Web Features
 
-- **icon** — Tampermonkey icon
-- **onefile** — bundles into a single `.user.js`
+- **icon** - Tampermonkey icon
+- **onefile** - bundles into a single `.user.js`
 - **replaceLink**:
   - `from` → embeds asset into CSS
   - `from` + `to` → replaces URL
@@ -100,4 +100,4 @@ dist/
 
 ## Dependencies
 
-- esbuild — used for building and minifying code
+- esbuild - used for building and minifying code

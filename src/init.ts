@@ -81,7 +81,7 @@ export function init(cwd = process.cwd()): void {
 		log.file("write", "src/style.css");
 	}
 
-	// tsconfig.json — для IDE-поддержки (сборка идёт через esbuild, не tsc)
+	// tsconfig.json - для IDE-поддержки (сборка идёт через esbuild, не tsc)
 	const tsconfigPath = path.join(cwd, "tsconfig.json");
 
 	if (!fs.existsSync(tsconfigPath)) {
@@ -103,7 +103,7 @@ export function init(cwd = process.cwd()): void {
 		log.file("write", "tsconfig.json");
 	}
 
-	// src/script.ts — TypeScript entry point
+	// src/script.ts - TypeScript entry point
 	const tsPath = path.join(srcDir, "script.ts");
 	const jsPath = path.join(srcDir, "script.js");
 

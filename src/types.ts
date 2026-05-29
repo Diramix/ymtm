@@ -54,10 +54,11 @@ export interface Config {
 		pext?: { artifactName: string };
 	};
 	web?: {
+		/** @deprecated Use `userscript` section instead */
 		onefile?: { artifactName: string };
 		icon?: string;
 		replaceLink?: Replacement[];
-		userscript?: TMUserScript;
+		userscript?: TMUserScript & { artifactName?: string };
 	};
 	// Internal fields added by loadConfig
 	_targets: string[];

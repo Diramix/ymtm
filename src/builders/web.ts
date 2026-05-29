@@ -82,7 +82,7 @@ function buildWebReplacementMap(config: Config): Replacement[] {
 
 		const assetFile = findAssetFile(assetsDir, fileName);
 		if (!assetFile) {
-			log.warn(`web replace skipped: asset not found — ${fileName}`);
+			log.warn(`web replace skipped: asset not found - ${fileName}`);
 			continue;
 		}
 
@@ -179,6 +179,7 @@ function buildTMHeader(metadata: Config["_metadata"], config: Config): string {
 		"author",
 		"match",
 		"grant",
+		"artifactName",
 	]);
 	for (const [key, val] of Object.entries(us)) {
 		if (!handled.has(key)) addDirective(key, val);
@@ -197,6 +198,12 @@ function buildWebOnefile(config: Config): string {
 	const metadata = config._metadata;
 	const webReplacements = buildWebReplacementMap(config);
 	const onefileCfg = config.web?.onefile;
+
+	if (onefileCfg) {
+		log.warn(
+			"web.onefile is deprecated - move artifactName into web.artifactName and use the web.userscript section instead",
+		);
+	}
 
 	// Generate env-based replacements for production (only YMTM_PUBLIC_)
 	const envReplacements = generateEnvReplacements(config._env, false);
@@ -239,11 +246,11 @@ function buildWebOnefile(config: Config): string {
 	const output = header + body + "\n";
 
 	ensureDir(path.join(cwd, "release"));
-	const artifactName = resolveArtifactName(
-		onefileCfg!.artifactName,
-		config,
-		"web",
-	);
+	const rawArtifactName =
+		onefileCfg?.artifactName ??
+		config.web?.userscript?.artifactName ??
+		"${addon.name}_${addon.version}_${build.package}.user.js";
+	const artifactName = resolveArtifactName(rawArtifactName, config, "web");
 	const outPath = path.join(cwd, "release", artifactName);
 	fs.writeFileSync(outPath, output, "utf8");
 	log.artifact(artifactName, fileSize(outPath));
