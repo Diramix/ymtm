@@ -13,6 +13,28 @@ export interface Replacement {
 	to?: string;
 }
 
+export interface TMUserScript {
+	name?: string;
+	namespace?: string;
+	version?: string;
+	description?: string;
+	author?: string;
+	icon?: string;
+	homepage?: string;
+	match?: string | string[];
+	"exclude-match"?: string | string[];
+	include?: string | string[];
+	exclude?: string | string[];
+	grant?: string | string[];
+	connect?: string | string[];
+	require?: string | string[];
+	resource?: string | string[];
+	"run-at"?: string;
+	noframes?: boolean;
+	sandbox?: string;
+	[key: string]: string | string[] | boolean | undefined;
+}
+
 export interface Config {
 	name: string;
 	version: string;
@@ -35,6 +57,7 @@ export interface Config {
 		onefile?: { artifactName: string };
 		icon?: string;
 		replaceLink?: Replacement[];
+		userscript?: TMUserScript;
 	};
 	// Internal fields added by loadConfig
 	_targets: string[];

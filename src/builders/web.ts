@@ -11,7 +11,7 @@ import {
 } from "../utils.js";
 import { collectSourceFiles } from "../src-resolver.js";
 import { generateEnvReplacements } from "../env.js";
-import type { Config, Replacement } from "../types.js";
+import type { Config, Replacement, TMUserScript } from "../types.js";
 
 // Helpers
 
@@ -114,28 +114,79 @@ function cssToJS(cssContent: string): string {
 	return `(function(){var s=document.createElement('style');s.textContent=\`${escaped}\`;document.head.appendChild(s)})();`;
 }
 
-function buildTMHeader(metadata: Config["_metadata"], config: Config): string {
-	const icon = config?.web?.icon || "";
-	const name = metadata?.name || config.addonName || "Addon";
-	const version = metadata?.version || config.version || "1.0.0";
-	const description = metadata?.description || config.description || "";
-	const author = Array.isArray(metadata?.author)
-		? metadata.author.join(", ")
-		: metadata?.author || config.author || "";
+function formatDirective(key: string, value: string): string {
+	const spaces = Math.max(1, 14 - key.length);
+	return `// @${key}${" ".repeat(spaces)}${value}`;
+}
 
-	return [
-		"// ==UserScript==",
-		`// @icon          ${icon}`,
-		`// @name          ${name}`,
-		`// @namespace     ymtm`,
-		`// @version       ${version}`,
-		`// @description   ${description}`,
-		`// @author        ${author}`,
-		`// @match         https://music.yandex.ru/*`,
-		`// @grant         none`,
-		"// ==/UserScript==",
-		"",
-	].join("\n");
+function buildTMHeader(metadata: Config["_metadata"], config: Config): string {
+	const us: TMUserScript = config.web?.userscript ?? {};
+
+	// Standard fields: userscript overrides metadata which overrides package.json
+	const icon = (us.icon ?? config.web?.icon ?? "") as string;
+	const name = (us.name ??
+		metadata?.name ??
+		config.addonName ??
+		"Addon") as string;
+	const namespace = (us.namespace ?? "ymtm") as string;
+	const version = (us.version ??
+		metadata?.version ??
+		config.version ??
+		"1.0.0") as string;
+	const description = (us.description ??
+		metadata?.description ??
+		config.description ??
+		"") as string;
+	const author = (us.author ??
+		(Array.isArray(metadata?.author)
+			? metadata.author.join(", ")
+			: (metadata?.author ?? config.author ?? ""))) as string;
+
+	const lines: string[] = ["// ==UserScript=="];
+
+	function addDirective(
+		key: string,
+		val: string | string[] | boolean | undefined,
+	): void {
+		if (val === undefined || val === null) return;
+		if (typeof val === "boolean") {
+			if (val) lines.push(`// @${key}`);
+			return;
+		}
+		const values = Array.isArray(val) ? val : [val];
+		for (const v of values) {
+			if (v !== "") lines.push(formatDirective(key, v));
+		}
+	}
+
+	// Fixed-order standard fields
+	addDirective("icon", icon);
+	addDirective("name", name);
+	addDirective("namespace", namespace);
+	addDirective("version", version);
+	addDirective("description", description);
+	addDirective("author", author);
+	addDirective("match", us.match ?? "https://music.yandex.ru/*");
+	addDirective("grant", us.grant ?? "none");
+
+	// All remaining userscript fields not already handled above
+	const handled = new Set([
+		"icon",
+		"name",
+		"namespace",
+		"version",
+		"description",
+		"author",
+		"match",
+		"grant",
+	]);
+	for (const [key, val] of Object.entries(us)) {
+		if (!handled.has(key)) addDirective(key, val);
+	}
+
+	lines.push("// ==/UserScript==");
+	lines.push("");
+	return lines.join("\n");
 }
 
 // Build
