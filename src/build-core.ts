@@ -25,7 +25,10 @@ export interface BuildOptions {
 	isDev?: boolean;
 }
 
-export function buildToDir(config: Config, opts: BuildOptions): void {
+export async function buildToDir(
+	config: Config,
+	opts: BuildOptions,
+): Promise<void> {
 	const srcDir = config._srcDir;
 	const metadata = config._metadata;
 	const webReplacements = config.web?.replaceLink ?? [];
@@ -106,7 +109,7 @@ export function buildToDir(config: Config, opts: BuildOptions): void {
 	if (assets.length > 0) logFile("copy", "assets/");
 
 	// Bundle JS/CSS
-	bundleToDir(
+	await bundleToDir(
 		allFiles,
 		srcDir,
 		opts.targetFolder,

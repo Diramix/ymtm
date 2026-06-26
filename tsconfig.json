@@ -1,16 +1,15 @@
 {
 	"compilerOptions": {
-		"target": "ES2020",
-		"module": "NodeNext",
-		"moduleResolution": "NodeNext",
-		"outDir": "dist",
-		"rootDir": "src",
+		"target": "ESNext",
+		"module": "Preserve",
+		"moduleResolution": "bundler",
+		"noEmit": true,
 		"strict": true,
 		"esModuleInterop": true,
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"declaration": false,
-		"types": ["node"]
+		"types": ["bun"]
 	},
 	"include": ["src/**/*"],
 	"exclude": ["node_modules", "dist"]

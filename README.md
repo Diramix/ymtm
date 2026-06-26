@@ -8,7 +8,7 @@ npm install --save-dev @diram1x/ymtm
 
 | Client                                           | Build Command          | Formats         |
 | ------------------------------------------------ | ---------------------- | --------------- |
-| **[Next Music](https://nm.diram1x.ru/)**  | `ymtm build nextmusic` | `.tar.gz`       |
+| **[Next Music](https://nm.diram1x.ru/)**         | `ymtm build nextmusic` | `.tar.gz`       |
 | **[PulseSync](https://pulsesync.dev/)**          | `ymtm build pulsesync` | `.zip`, `.pext` |
 | **[Yandex Music Web](https://music.yandex.ru/)** | `ymtm build web`       | `.user.js`      |
 
@@ -93,11 +93,6 @@ dist/
     },
     "devDependencies": {
         "@diram1x/ymtm": "^2.2.0"
-        "esbuild": "^0.27.4"
     }
 }
 ```
-
-## Dependencies
-
-- esbuild - used for building and minifying code

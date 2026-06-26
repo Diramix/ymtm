@@ -85,11 +85,11 @@ function prompt(question: string, choices: string[]): Promise<string> {
 	});
 }
 
-function buildSilent(config: Config, target: string): void {
+async function buildSilent(config: Config, target: string): Promise<void> {
 	process.stdout.write("  compiling...");
 	const start = Date.now();
 	try {
-		buildDevTarget(config, target);
+		await buildDevTarget(config, target);
 		const elapsed = ((Date.now() - start) / 1000).toFixed(2);
 		process.stdout.write(`\r  compiled in ${elapsed}s    \n`);
 	} catch (e) {
@@ -131,8 +131,9 @@ function scheduleRebuild(
 	_rebuildTimer = setTimeout(() => {
 		if (_isBuilding) return;
 		_isBuilding = true;
-		buildSilent(config, target);
-		_isBuilding = false;
+		void buildSilent(config, target).finally(() => {
+			_isBuilding = false;
+		});
 	}, 150);
 }
 
@@ -199,7 +200,7 @@ export async function runDev(cliTarget?: string): Promise<void> {
 		`  target  ${displayName(target)}  •  ${config.addonName}\n\n`,
 	);
 
-	buildSilent(config, target);
+	await buildSilent(config, target);
 
 	const watchPath = config._srcDir;
 	if (!fs.existsSync(watchPath)) {

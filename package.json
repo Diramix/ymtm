@@ -3,7 +3,6 @@
 	"version": "3.6.1",
 	"description": "Yandex Music Theme Maker",
 	"type": "module",
-	"packageManager": "pnpm@11.5.1",
 	"publishConfig": {
 		"access": "public"
 	},
@@ -16,7 +15,8 @@
 		"dist"
 	],
 	"scripts": {
-		"build": "tsc",
+		"typecheck": "tsc --noEmit",
+		"build": "tsc --noEmit && bun build src/cli.ts --target bun --outdir dist --format esm --minify",
 		"format": "prettier --write .",
 		"format:check": "prettier --check ."
 	},
@@ -25,11 +25,11 @@
 	},
 	"license": "MIT",
 	"dependencies": {
-		"esbuild": "^0.27.4",
+		"bun": "^1.1.0",
 		"sass": "^1.99.0"
 	},
 	"devDependencies": {
-		"@types/node": "^25.6.0",
+		"@types/bun": "^1.1.0",
 		"prettier": "^3.8.3",
 		"typescript": "^6.0.2"
 	}

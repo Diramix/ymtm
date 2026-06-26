@@ -81,7 +81,7 @@ export function init(cwd = process.cwd()): void {
 		log.file("write", "src/style.css");
 	}
 
-	// tsconfig.json - для IDE-поддержки (сборка идёт через esbuild, не tsc)
+	// tsconfig.json - для IDE-поддержки (сборка идёт через Bun.build, не tsc)
 	const tsconfigPath = path.join(cwd, "tsconfig.json");
 
 	if (!fs.existsSync(tsconfigPath)) {

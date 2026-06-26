@@ -170,7 +170,7 @@ export function getBundleNames(metadata: Metadata | null): {
 }
 
 // Bundler
-export function bundleToDir(
+export async function bundleToDir(
 	allFiles: string[],
 	srcDir: string,
 	targetFolder: string,
@@ -179,7 +179,7 @@ export function bundleToDir(
 	replacements: Replacement[],
 	logFile: (action: string, name: string) => void,
 	isDev = false,
-): void {
+): Promise<void> {
 	const { js: jsName, css: cssName } = getBundleNames(metadata);
 
 	const jsFiles: string[] = [];
@@ -201,14 +201,14 @@ export function bundleToDir(
 		if (ext === ".css") {
 			let content = fs.readFileSync(srcFile, "utf8");
 			content = applyReplacements(content, replacements);
-			cssChunks.push(minifyCSS(srcFile, content).trim());
+			cssChunks.push((await minifyCSS(srcFile, content)).trim());
 			logFile("minify", path.relative(srcDir, srcFile) + " → " + cssName);
 		}
 
 		if (ext === ".scss") {
 			let content = fs.readFileSync(srcFile, "utf8");
 			content = applyReplacements(content, replacements);
-			cssChunks.push(compileSCSS(srcFile, content).trim());
+			cssChunks.push((await compileSCSS(srcFile, content)).trim());
 			logFile("minify", path.relative(srcDir, srcFile) + " → " + cssName);
 		}
 
@@ -233,7 +233,7 @@ export function bundleToDir(
 
 	if (jsFiles.length > 0) {
 		ensureDir(outDir);
-		const bundled = bundleJS(jsFiles, replacements, isDev);
+		const bundled = await bundleJS(jsFiles, replacements, isDev);
 		fs.writeFileSync(path.join(outDir, jsName), bundled, "utf8");
 		logFile("write", jsName);
 	}

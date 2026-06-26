@@ -12,7 +12,7 @@ import { buildToDir } from "../build-core.js";
 import type { Config } from "../types.js";
 
 // Production build
-export function buildPulseSync(config: Config): void {
+export async function buildPulseSync(config: Config): Promise<void> {
 	const cwd = config._cwd;
 	const name = config.addonName;
 	const version = config.version;
@@ -23,7 +23,7 @@ export function buildPulseSync(config: Config): void {
 	const unpackedFolder = addonFolderName(name, version) + "_ps-unpacked";
 	const outDir = path.join(cwd, "release", unpackedFolder, name);
 
-	buildToDir(config, {
+	await buildToDir(config, {
 		targetFolder: "ps",
 		outDir,
 		copyLicense: true,
@@ -69,11 +69,11 @@ export function buildPulseSync(config: Config): void {
 }
 
 // Dev build
-export function buildPulseSyncDev(config: Config): void {
+export async function buildPulseSyncDev(config: Config): Promise<void> {
 	const outDir = path.join(config._cwd, "dist", config.addonName);
 	if (fs.existsSync(outDir))
 		fs.rmSync(outDir, { recursive: true, force: true });
-	buildToDir(config, {
+	await buildToDir(config, {
 		targetFolder: "ps",
 		outDir,
 		silent: true,

@@ -192,7 +192,7 @@ function buildTMHeader(metadata: Config["_metadata"], config: Config): string {
 
 // Build
 
-function buildWebOnefile(config: Config): string {
+async function buildWebOnefile(config: Config): Promise<string> {
 	const cwd = config._cwd;
 	const srcDir = config._srcDir;
 	const metadata = config._metadata;
@@ -233,13 +233,16 @@ function buildWebOnefile(config: Config): string {
 		const ext = path.extname(f).toLowerCase();
 		let content = fs.readFileSync(f, "utf8");
 		content = applyReplacements(content, replacements);
-		content = ext === ".scss" ? compileSCSS(f, content) : minifyCSS(f, content);
+		content =
+			ext === ".scss"
+				? await compileSCSS(f, content)
+				: await minifyCSS(f, content);
 		cssBlock += cssToJS(content).trim();
 		log.file("minify", `${path.relative(srcDir, f)} → css-in-js`);
 	}
 
 	const jsBlock =
-		jsFiles.length > 0 ? bundleJS(jsFiles, replacements).trim() : "";
+		jsFiles.length > 0 ? (await bundleJS(jsFiles, replacements)).trim() : "";
 
 	const header = buildTMHeader(metadata, config);
 	const body = `${cssBlock}${jsBlock}`.trim();
@@ -257,7 +260,7 @@ function buildWebOnefile(config: Config): string {
 	return artifactName;
 }
 
-export function buildWeb(config: Config): void {
+export async function buildWeb(config: Config): Promise<void> {
 	log.task("web");
 	log.info("building", {
 		target: "web",
@@ -265,6 +268,6 @@ export function buildWeb(config: Config): void {
 		version: config.version,
 	});
 
-	const artifactName = buildWebOnefile(config);
+	const artifactName = await buildWebOnefile(config);
 	log.done("web", artifactName || undefined);
 }

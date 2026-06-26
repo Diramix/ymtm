@@ -8,7 +8,7 @@ import { createRequire } from "module";
 const _require = createRequire(import.meta.url);
 const { version } = _require("../package.json") as { version: string };
 
-export function run(args: string[]): void {
+export async function run(args: string[]): Promise<void> {
 	const [command, ...rest] = args;
 
 	if (command === "init") {
@@ -43,9 +43,9 @@ export function run(args: string[]): void {
 
 		try {
 			if (rest.length === 0) {
-				buildAll(config);
+				await buildAll(config);
 			} else {
-				for (const pkg of rest) buildPackage(config, pkg);
+				for (const pkg of rest) await buildPackage(config, pkg);
 			}
 		} catch (e) {
 			log.error(`Build failed: ${(e as Error).message}`);
