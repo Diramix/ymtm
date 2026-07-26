@@ -77,7 +77,9 @@ function buildWebReplacementMap(config: Config): Replacement[] {
 
 		const fileName = extractFileNameFromUrlOrPath(from);
 		if (!fileName) {
-			log.warn(`web replace skipped: cannot resolve filename from ${from}`);
+			log.warn(
+				`web replace skipped: cannot resolve filename from ${from}`,
+			);
 			continue;
 		}
 
@@ -249,8 +251,9 @@ async function buildWebOnefile(config: Config): Promise<string> {
 	}
 
 	const jsBlock =
-		(jsFiles.length > 0 ? (await bundleJS(jsFiles, replacements)).trim() : "") +
-		binJs.join("");
+		(jsFiles.length > 0
+			? (await bundleJS(jsFiles, replacements)).trim()
+			: "") + binJs.join("");
 
 	const header = buildTMHeader(metadata, config);
 	const body = `${cssBlock}${jsBlock}`.trim();

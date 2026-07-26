@@ -39,7 +39,9 @@ const DEFAULT_PKG = {
 		pext: { artifactName: "${addon.name}_${addon.version}_ps.pext" },
 	},
 	web: {
-		userscript: { artifactName: "${addon.name}_${addon.version}_web.user.js" },
+		userscript: {
+			artifactName: "${addon.name}_${addon.version}_web.user.js",
+		},
 	},
 	devDependencies: {
 		"@diram1x/ymtm": `^${config.version}`,
@@ -99,7 +101,11 @@ export function init(cwd = process.cwd()): void {
 			include: ["src/**/*"],
 		};
 
-		fs.writeFileSync(tsconfigPath, JSON.stringify(tsconfig, null, 2), "utf8");
+		fs.writeFileSync(
+			tsconfigPath,
+			JSON.stringify(tsconfig, null, 2),
+			"utf8",
+		);
 		log.file("write", "tsconfig.json");
 	}
 

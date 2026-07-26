@@ -244,15 +244,20 @@ export async function bundleToDir(
 	if (jsFiles.length > 0 || binJs.length > 0) {
 		ensureDir(outDir);
 		const bundled =
-			(jsFiles.length > 0 ? await bundleJS(jsFiles, replacements, isDev) : "") +
-			binJs.join("");
+			(jsFiles.length > 0
+				? await bundleJS(jsFiles, replacements, isDev)
+				: "") + binJs.join("");
 		fs.writeFileSync(path.join(outDir, jsName), bundled, "utf8");
 		logFile("write", jsName);
 	}
 
 	if (cssChunks.length > 0) {
 		ensureDir(outDir);
-		fs.writeFileSync(path.join(outDir, cssName), cssChunks.join(""), "utf8");
+		fs.writeFileSync(
+			path.join(outDir, cssName),
+			cssChunks.join(""),
+			"utf8",
+		);
 		logFile("write", cssName);
 	}
 }

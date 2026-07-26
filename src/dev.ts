@@ -33,7 +33,9 @@ function prompt(question: string, choices: string[]): Promise<string> {
 			for (let i = 0; i < choices.length; i++) {
 				const label = displayName(choices[i]);
 				if (i === selected) {
-					process.stdout.write(`${CLEAR_LINE}  ${CYAN}> ${label}${RESET}\n`);
+					process.stdout.write(
+						`${CLEAR_LINE}  ${CYAN}> ${label}${RESET}\n`,
+					);
 				} else {
 					process.stdout.write(`${CLEAR_LINE}    ${label}\n`);
 				}

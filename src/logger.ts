@@ -18,7 +18,10 @@ export function info(
 		const pairs =
 			typeof data === "object"
 				? Object.entries(data)
-						.map(([k, v]) => `${CYAN}${k}${RESET}=${GRAY}${v}${RESET}`)
+						.map(
+							([k, v]) =>
+								`${CYAN}${k}${RESET}=${GRAY}${v}${RESET}`,
+						)
 						.join("  ")
 				: GRAY + data + RESET;
 		process.stdout.write(line + "  " + pairs + os.EOL);
