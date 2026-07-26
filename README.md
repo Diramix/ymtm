@@ -11,6 +11,7 @@ npm install --save-dev @diram1x/ymtm
 | **[Next Music](https://nm.diram1x.ru/)**         | `ymtm build nextmusic` | `.tar.gz`       |
 | **[PulseSync](https://pulsesync.dev/)**          | `ymtm build pulsesync` | `.zip`, `.pext` |
 | **[Yandex Music Web](https://music.yandex.ru/)** | `ymtm build web`       | `.user.js`      |
+| **Module**                                       | `ymtm build bin`       | `.bin`          |
 
 ### Naming
 
@@ -25,7 +26,7 @@ ${theme.name}_${theme.version}_${build.package}.ext
 ### Web Features
 
 - **icon** - Tampermonkey icon
-- **onefile** - bundles into a single `.user.js`
+- **userscript** - bundles into a single `.user.js`
 - **replaceLink**:
   - `from` → embeds asset into CSS
   - `from` + `to` → replaces URL
@@ -78,7 +79,7 @@ dist/
     },
     "web": {
         "icon": "https://url/to/icon.ext",
-        "onefile": {
+        "userscript": {
             "artifactName": "Example-Theme_${theme.version}_${build.package}.user.js"
         },
         "replaceLink": [

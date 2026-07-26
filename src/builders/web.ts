@@ -8,6 +8,7 @@ import {
 	bundleJS,
 	minifyCSS,
 	compileSCSS,
+	readBin,
 } from "../utils.js";
 import { collectSourceFiles } from "../src-resolver.js";
 import { generateEnvReplacements } from "../env.js";
@@ -218,6 +219,7 @@ async function buildWebOnefile(config: Config): Promise<string> {
 
 	const jsFiles: string[] = [];
 	const cssFiles: string[] = [];
+	const binJs: string[] = [];
 
 	for (const f of allFiles) {
 		const ext = path.extname(f).toLowerCase();
@@ -226,6 +228,11 @@ async function buildWebOnefile(config: Config): Promise<string> {
 			log.file("minify", path.relative(srcDir, f));
 		} else if (ext === ".css" || ext === ".scss") {
 			cssFiles.push(f);
+		} else if (ext === ".bin") {
+			const mod = readBin(f);
+			if (mod.css) cssBlock = cssToJS(mod.css).trim() + cssBlock;
+			if (mod.js) binJs.push(mod.js);
+			log.file("merge", path.relative(srcDir, f));
 		}
 	}
 
@@ -242,7 +249,8 @@ async function buildWebOnefile(config: Config): Promise<string> {
 	}
 
 	const jsBlock =
-		jsFiles.length > 0 ? (await bundleJS(jsFiles, replacements)).trim() : "";
+		(jsFiles.length > 0 ? (await bundleJS(jsFiles, replacements)).trim() : "") +
+		binJs.join("");
 
 	const header = buildTMHeader(metadata, config);
 	const body = `${cssBlock}${jsBlock}`.trim();

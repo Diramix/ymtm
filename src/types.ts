@@ -60,6 +60,9 @@ export interface Config {
 		replaceLink?: Replacement[];
 		userscript?: TMUserScript & { artifactName?: string };
 	};
+	bin?: {
+		artifactName?: string;
+	};
 	// Internal fields added by loadConfig
 	_targets: string[];
 	_cwd: string;

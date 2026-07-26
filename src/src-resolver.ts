@@ -9,13 +9,14 @@ import {
 	compileSCSS,
 	minifyCSS,
 	applyReplacements,
+	readBin,
 } from "./utils.js";
 import type { Metadata, Replacement } from "./types.js";
 
-const TARGET_FOLDERS = new Set(["ps", "nm", "web"]);
+export const TARGET_FOLDERS = new Set(["ps", "nm", "web"]);
 
 // Source collection
-function findDirsNamed(
+export function findDirsNamed(
 	root: string,
 	name: string,
 	ignoreRules: string[] = [],
@@ -184,6 +185,7 @@ export async function bundleToDir(
 
 	const jsFiles: string[] = [];
 	const cssChunks: string[] = [];
+	const binJs: string[] = [];
 
 	for (const srcFile of allFiles) {
 		const ext = path.extname(srcFile).toLowerCase();
@@ -192,6 +194,14 @@ export async function bundleToDir(
 		if (path.basename(srcFile) === "metadata.json") continue;
 		if (srcFile.split(/[\\/]/).includes("assets")) continue;
 		if (base === "icon" && IMAGE_EXTS.includes(ext)) continue;
+
+		if (ext === ".bin") {
+			const mod = readBin(srcFile);
+			if (mod.css) cssChunks.unshift(mod.css.trim());
+			if (mod.js) binJs.push(mod.js);
+			logFile("merge", path.relative(srcDir, srcFile));
+			continue;
+		}
 
 		if (ext === ".js" || ext === ".ts") {
 			jsFiles.push(srcFile);
@@ -231,9 +241,11 @@ export async function bundleToDir(
 		}
 	}
 
-	if (jsFiles.length > 0) {
+	if (jsFiles.length > 0 || binJs.length > 0) {
 		ensureDir(outDir);
-		const bundled = await bundleJS(jsFiles, replacements, isDev);
+		const bundled =
+			(jsFiles.length > 0 ? await bundleJS(jsFiles, replacements, isDev) : "") +
+			binJs.join("");
 		fs.writeFileSync(path.join(outDir, jsName), bundled, "utf8");
 		logFile("write", jsName);
 	}

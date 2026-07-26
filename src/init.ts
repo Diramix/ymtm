@@ -39,7 +39,7 @@ const DEFAULT_PKG = {
 		pext: { artifactName: "${addon.name}_${addon.version}_ps.pext" },
 	},
 	web: {
-		onefile: { artifactName: "${addon.name}_${addon.version}_web.user.js" },
+		userscript: { artifactName: "${addon.name}_${addon.version}_web.user.js" },
 	},
 	devDependencies: {
 		"@diram1x/ymtm": `^${config.version}`,
