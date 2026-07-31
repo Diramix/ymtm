@@ -2,7 +2,7 @@ import * as log from "./logger.js";
 import { buildPulseSync, buildPulseSyncDev } from "./builders/pulsesync.js";
 import { buildNextMusic, buildNextMusicDev } from "./builders/nextmusic.js";
 import { buildWeb } from "./builders/web.js";
-import { buildBin } from "./builders/bin.js";
+import { buildBin, buildBinDev } from "./builders/bin.js";
 import type { Config } from "./types.js";
 
 // Builder registry
@@ -16,6 +16,7 @@ const BUILDERS: Record<string, (config: Config) => Promise<void>> = {
 const DEV_BUILDERS: Record<string, (config: Config) => Promise<void>> = {
 	pulsesync: buildPulseSyncDev,
 	nextmusic: buildNextMusicDev,
+	bin: buildBinDev,
 };
 
 // Production build

@@ -8,6 +8,7 @@ import type { Config } from "./types.js";
 const TARGET_DISPLAY: Record<string, string> = {
 	nextmusic: "Next Music",
 	pulsesync: "PulseSync",
+	bin: "Module (.bin)",
 };
 
 function displayName(target: string): string {
@@ -175,7 +176,7 @@ export async function runDev(cliTarget?: string): Promise<void> {
 
 	if (devTargets.length === 0) {
 		log.error(
-			'No dev-compatible targets found. Add "nextmusic" or "pulsesync" to build.targets.',
+			'No dev-compatible targets found. Add "nextmusic", "pulsesync", or "bin" to build.targets.',
 		);
 		process.exit(1);
 	}

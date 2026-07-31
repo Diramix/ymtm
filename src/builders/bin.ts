@@ -21,15 +21,15 @@ import {
 import { generateEnvReplacements } from "../env.js";
 import type { Config } from "../types.js";
 
-export async function buildBin(config: Config): Promise<void> {
-	const cwd = config._cwd;
+async function bundleBin(
+	config: Config,
+	opts: { outPath: string; isDev: boolean; silent: boolean },
+): Promise<boolean> {
 	const srcDir = config._srcDir;
-	const name = config.addonName;
-	const version = config.version;
 	const ignoreRules = parseBuildIgnore(config._buildIgnore);
-
-	log.task("bin");
-	log.info("building", { target: "bin", addonName: name, version });
+	const logFile: (action: string, name: string) => void = opts.silent
+		? () => {}
+		: (a, n) => log.file(a, n);
 
 	// Target-agnostic format: abort if the source tree is split by target.
 	for (const folder of TARGET_FOLDERS) {
@@ -38,13 +38,13 @@ export async function buildBin(config: Config): Promise<void> {
 			log.error(
 				`bin build does not support targets: found "${folder}/" in src. Remove target folders (web/ps/nm) to build a .bin module.`,
 			);
-			return;
+			return false;
 		}
 	}
 
 	const replacements = [
 		...(config.web?.replaceLink ?? []),
-		...generateEnvReplacements(config._env, false),
+		...generateEnvReplacements(config._env, opts.isDev),
 	];
 
 	const { shared } = collectSourceFiles(srcDir, "bin", ignoreRules);
@@ -59,33 +59,49 @@ export async function buildBin(config: Config): Promise<void> {
 
 		if (ext === ".js" || ext === ".ts") {
 			jsFiles.push(srcFile);
-			log.file("minify", path.relative(srcDir, srcFile));
+			logFile("minify", path.relative(srcDir, srcFile));
 		} else if (ext === ".css") {
 			let content = fs.readFileSync(srcFile, "utf8");
 			content = applyReplacements(content, replacements);
 			cssChunks.push((await minifyCSS(srcFile, content)).trim());
-			log.file("minify", path.relative(srcDir, srcFile));
+			logFile("minify", path.relative(srcDir, srcFile));
 		} else if (ext === ".scss") {
 			let content = fs.readFileSync(srcFile, "utf8");
 			content = applyReplacements(content, replacements);
 			cssChunks.push((await compileSCSS(srcFile, content)).trim());
-			log.file("minify", path.relative(srcDir, srcFile));
+			logFile("minify", path.relative(srcDir, srcFile));
 		} else if (ext === ".bin") {
 			const mod = readBin(srcFile);
 			if (mod.css) cssChunks.unshift(mod.css.trim());
 			if (mod.js) binJs.push(mod.js);
-			log.file("merge", path.relative(srcDir, srcFile));
+			logFile("merge", path.relative(srcDir, srcFile));
 		}
 	}
 
-	let jsOut = jsFiles.length > 0 ? await bundleJS(jsFiles, replacements) : "";
+	let jsOut =
+		jsFiles.length > 0
+			? await bundleJS(jsFiles, replacements, opts.isDev)
+			: "";
 	jsOut += binJs.join("");
 	const cssOut = cssChunks.join("");
 
 	if (!jsOut && !cssOut) {
 		log.warn("nothing to bundle: no styles or scripts found");
-		return;
+		return false;
 	}
+
+	writeBin(opts.outPath, { css: cssOut, js: jsOut });
+	return true;
+}
+
+// Production build
+export async function buildBin(config: Config): Promise<void> {
+	const cwd = config._cwd;
+	const name = config.addonName;
+	const version = config.version;
+
+	log.task("bin");
+	log.info("building", { target: "bin", addonName: name, version });
 
 	const artifactName = resolveArtifactName(
 		config.bin?.artifactName ?? "${addon.name}_${addon.version}.bin",
@@ -93,7 +109,26 @@ export async function buildBin(config: Config): Promise<void> {
 		"bin",
 	);
 	const outPath = path.join(cwd, "release", artifactName);
-	writeBin(outPath, { css: cssOut, js: jsOut });
+
+	const ok = await bundleBin(config, {
+		outPath,
+		isDev: false,
+		silent: false,
+	});
+	if (!ok) return;
+
 	log.artifact(artifactName, fileSize(outPath));
 	log.done("bin", artifactName);
+}
+
+// Dev build
+export async function buildBinDev(config: Config): Promise<void> {
+	const artifactName = resolveArtifactName(
+		config.bin?.artifactName ?? "${addon.name}_${addon.version}.bin",
+		config,
+		"bin",
+	);
+	const outPath = path.join(config._cwd, "dist", artifactName);
+
+	await bundleBin(config, { outPath, isDev: true, silent: true });
 }
