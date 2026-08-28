@@ -1,6 +1,7 @@
 import fs from "fs";
 import path from "path";
 import * as log from "./logger.js";
+import { syncTypes } from "./types-sync.js";
 import config from "../package.json" with { type: "json" };
 
 const DEFAULT_METADATA = {
@@ -89,16 +90,19 @@ export function init(cwd = process.cwd()): void {
 	if (!fs.existsSync(tsconfigPath)) {
 		const tsconfig = {
 			compilerOptions: {
-				target: "ES2017",
-				lib: ["ES2017", "DOM"],
+				target: "ES2022",
+				lib: ["ES2022", "DOM", "DOM.Iterable"],
 				module: "ESNext",
 				moduleResolution: "bundler",
+				jsx: "react",
+				jsxFactory: "React.createElement",
+				jsxFragmentFactory: "React.Fragment",
 				strict: true,
 				noEmit: true,
 				allowJs: true,
 				skipLibCheck: true,
 			},
-			include: ["src/**/*"],
+			include: ["src/**/*", "types/**/*"],
 		};
 
 		fs.writeFileSync(
@@ -159,11 +163,14 @@ export function init(cwd = process.cwd()): void {
 	if (!fs.existsSync(ignorePath)) {
 		fs.writeFileSync(
 			ignorePath,
-			"# Files to exclude from builds\n.DS_Store\n*.map\n",
+			"# Files to exclude from builds\n.DS_Store\n*.map\n*.d.ts\n",
 			"utf8",
 		);
 		log.file("write", ".buildignore");
 	}
+
+	// types/nextmusic.d.ts
+	syncTypes(cwd);
 
 	log.done("init");
 }

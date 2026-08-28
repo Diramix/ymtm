@@ -10,10 +10,14 @@ import {
 	minifyCSS,
 	applyReplacements,
 	readBin,
+	isScriptFile,
+	isTypeDeclaration,
 } from "./utils.js";
 import type { Metadata, Replacement } from "./types.js";
 
 export const TARGET_FOLDERS = new Set(["ps", "nm", "web"]);
+
+const IGNORED_DIRS = new Set(["node_modules", ".git"]);
 
 // Source collection
 export function findDirsNamed(
@@ -33,6 +37,7 @@ export function findDirsNamed(
 		}
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
+			if (IGNORED_DIRS.has(entry.name)) continue;
 			const full = path.join(dir, entry.name);
 			if (shouldIgnore(full, ignoreRules)) continue;
 			if (entry.name === name) {
@@ -60,6 +65,7 @@ function findAssetsDirs(root: string, ignoreRules: string[] = []): string[] {
 		}
 		for (const entry of entries) {
 			if (!entry.isDirectory()) continue;
+			if (IGNORED_DIRS.has(entry.name)) continue;
 			const full = path.join(dir, entry.name);
 			if (shouldIgnore(full, ignoreRules)) continue;
 			if (entry.name === "assets") {
@@ -123,6 +129,7 @@ function collectShared(
 
 		if (entry.isDirectory()) {
 			if (skipPrefixes.has(full)) continue;
+			if (IGNORED_DIRS.has(entry.name)) continue;
 			collectShared(full, result, ignoreRules, skipPrefixes);
 		} else {
 			result.push(full);
@@ -140,6 +147,7 @@ function collectAll(
 		.readdirSync(dir, { withFileTypes: true })
 		.sort((a, b) => a.name.localeCompare(b.name));
 	for (const entry of entries) {
+		if (entry.isDirectory() && IGNORED_DIRS.has(entry.name)) continue;
 		const full = path.join(dir, entry.name);
 		if (shouldIgnore(full, ignoreRules)) continue;
 		if (entry.isDirectory()) collectAll(full, result, ignoreRules);
@@ -194,6 +202,7 @@ export async function bundleToDir(
 		if (path.basename(srcFile) === "metadata.json") continue;
 		if (srcFile.split(/[\\/]/).includes("assets")) continue;
 		if (base === "icon" && IMAGE_EXTS.includes(ext)) continue;
+		if (isTypeDeclaration(srcFile)) continue;
 
 		if (ext === ".bin") {
 			const mod = readBin(srcFile);
@@ -203,7 +212,7 @@ export async function bundleToDir(
 			continue;
 		}
 
-		if (ext === ".js" || ext === ".ts") {
+		if (isScriptFile(srcFile)) {
 			jsFiles.push(srcFile);
 			logFile("minify", path.relative(srcDir, srcFile) + " → " + jsName);
 		}
@@ -228,8 +237,7 @@ export async function bundleToDir(
 			fs.copyFileSync(srcFile, dest);
 			logFile("copy", path.relative(srcDir, srcFile));
 		} else if (
-			ext !== ".js" &&
-			ext !== ".ts" &&
+			!isScriptFile(srcFile) &&
 			ext !== ".css" &&
 			ext !== ".scss"
 		) {

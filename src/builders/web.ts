@@ -9,6 +9,7 @@ import {
 	minifyCSS,
 	compileSCSS,
 	readBin,
+	isScriptFile,
 } from "../utils.js";
 import { collectSourceFiles } from "../src-resolver.js";
 import { generateEnvReplacements } from "../env.js";
@@ -225,7 +226,7 @@ async function buildWebOnefile(config: Config): Promise<string> {
 
 	for (const f of allFiles) {
 		const ext = path.extname(f).toLowerCase();
-		if (ext === ".js" || ext === ".ts") {
+		if (isScriptFile(f)) {
 			jsFiles.push(f);
 			log.file("minify", path.relative(srcDir, f));
 		} else if (ext === ".css" || ext === ".scss") {

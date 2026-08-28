@@ -12,6 +12,7 @@ import {
 	readBin,
 	writeBin,
 	IMAGE_EXTS,
+	isScriptFile,
 } from "../utils.js";
 import {
 	collectSourceFiles,
@@ -57,7 +58,7 @@ async function bundleBin(
 		const ext = path.extname(srcFile).toLowerCase();
 		if (IMAGE_EXTS.includes(ext)) continue;
 
-		if (ext === ".js" || ext === ".ts") {
+		if (isScriptFile(srcFile)) {
 			jsFiles.push(srcFile);
 			logFile("minify", path.relative(srcDir, srcFile));
 		} else if (ext === ".css") {
@@ -78,10 +79,9 @@ async function bundleBin(
 		}
 	}
 
+	// .bin is always shipped minified — dev only affects env replacements.
 	let jsOut =
-		jsFiles.length > 0
-			? await bundleJS(jsFiles, replacements, opts.isDev)
-			: "";
+		jsFiles.length > 0 ? await bundleJS(jsFiles, replacements, false) : "";
 	jsOut += binJs.join("");
 	const cssOut = cssChunks.join("");
 

@@ -2,6 +2,7 @@ import { loadConfig } from "./config.js";
 import { buildAll, buildPackage } from "./builder.js";
 import { runDev } from "./dev.js";
 import { init } from "./init.js";
+import { runTypes } from "./types-sync.js";
 import * as log from "./logger.js";
 import { createRequire } from "module";
 
@@ -16,6 +17,16 @@ export async function run(args: string[]): Promise<void> {
 			init(process.cwd());
 		} catch (e) {
 			log.error(`Init failed: ${(e as Error).message}`);
+			process.exit(1);
+		}
+		return;
+	}
+
+	if (command === "types") {
+		try {
+			runTypes(process.cwd());
+		} catch (e) {
+			log.error(`Types sync failed: ${(e as Error).message}`);
 			process.exit(1);
 		}
 		return;
